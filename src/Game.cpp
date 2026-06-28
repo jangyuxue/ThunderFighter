@@ -156,7 +156,7 @@ void Game::FixedUpdate(double dt) {
             }
             if (!bossAlive) {
                 m_levelManager.OnBossDefeated();
-                m_scoreManager.AddScore(Config::SCORE_BOSS);
+                // 分数已在 ProcessCollisions 中添加，不重复计算
                 m_powerUpSystem.SpawnBossDrops(
                     Config::CANVAS_WIDTH * 0.5f, 120.0f, m_powerUps);
 
