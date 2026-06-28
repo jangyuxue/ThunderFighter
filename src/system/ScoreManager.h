@@ -2,9 +2,6 @@
 
 #include <string>
 
-// ============================================================
-// 分数管理器 — 分数追踪与最高分持久化
-// ============================================================
 struct HighScoreEntry {
     unsigned int score;
     char name[32];
@@ -21,6 +18,12 @@ public:
     void ResetCombo();
     int  GetCombo() const { return m_combo; }
 
+    // 金币系统
+    void AddGold(int amount) { m_gold += amount; }
+    bool SpendGold(int amount);
+    int  GetGold() const { return m_gold; }
+    int  GetTotalGoldEarned() const { return m_totalGoldEarned; }
+
     // 最高分
     void LoadHighScores();
     void SaveHighScores();
@@ -31,9 +34,12 @@ public:
     int GetHighScoreCount() const { return 10; }
 
     void Reset();
+    void ResetRun();  // 单局重置（保留金币）
 
 private:
     unsigned int m_score = 0;
     int          m_combo = 0;
+    int          m_gold  = 0;
+    int          m_totalGoldEarned = 0;
     HighScoreEntry m_highScores[10] = {};
 };

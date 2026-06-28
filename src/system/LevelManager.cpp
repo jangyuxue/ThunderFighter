@@ -48,17 +48,18 @@ void LevelManager::StartLevel(int level) {
 void LevelManager::Update(float dt,
                           std::vector<std::unique_ptr<Enemy>>& enemies,
                           std::vector<std::unique_ptr<PowerUp>>& /*powerUps*/) {
-    if (m_levelComplete || m_allComplete) return;
-
+    // 先处理过渡计时器（即使 m_levelComplete 也要倒计时）
     if (m_inTransition) {
         m_transitionTimer -= dt;
         if (m_transitionTimer <= 0.0f) {
             m_inTransition = false;
+            m_levelComplete = false;
             if (m_allComplete) return;
         }
         return;
     }
 
+    if (m_levelComplete || m_allComplete) return;
     if (!m_currentDef) return;
 
     // Boss 阶段

@@ -25,6 +25,7 @@ bool Game::Initialize(HWND hWnd) {
         return false;
     }
 
+    m_input.SetWindow(hWnd);  // 鼠标坐标转换需要窗口句柄
     m_particleSystem.SetPool(&m_particlePool);
     m_starField.Init();
     m_isRunning = true;
@@ -79,28 +80,30 @@ void Game::FixedUpdate(double dt) {
 
     GameState state = m_uiManager.GetState();
 
-    if (state == GameState::MENU || state == GameState::HIGH_SCORE) {
-        m_uiManager.HandleInput(m_input, m_player);
+    if (state == GameState::HUB || state == GameState::HIGH_SCORE
+        || state == GameState::LEVEL_SELECT || state == GameState::SHOP
+        || state == GameState::MISSIONS || state == GameState::ACHIEVEMENTS) {
+        m_uiManager.HandleInput(m_input, m_player, m_scoreManager);
         m_starField.Update(static_cast<float>(dt));
         return;
     }
 
     if (state == GameState::GAME_OVER) {
-        m_uiManager.HandleInput(m_input, m_player);
+        m_uiManager.HandleInput(m_input, m_player, m_scoreManager);
         m_particleSystem.Update(static_cast<float>(dt));
         return;
     }
 
     if (state == GameState::PLAYING || state == GameState::LEVEL_TRANSITION) {
-        m_uiManager.HandleInput(m_input, m_player);
+        m_uiManager.HandleInput(m_input, m_player, m_scoreManager);
 
-        // 关卡过渡中
+        // 关卡过渡中：仍需要调用 Update 来倒计时
         if (state == GameState::LEVEL_TRANSITION) {
+            m_levelManager.Update(static_cast<float>(dt), m_enemies, m_powerUps);
             if (!m_levelManager.IsInTransition()) {
-                // 过渡结束，进入下一关
                 m_levelManager.StartLevel(m_levelManager.GetCurrentLevel());
                 m_uiManager.SetState(GameState::PLAYING);
-                m_weaponSystem = WeaponSystem();  // 重置武器
+                m_weaponSystem = WeaponSystem();
             }
             m_starField.Update(static_cast<float>(dt));
             m_particleSystem.Update(static_cast<float>(dt));
@@ -108,6 +111,13 @@ void Game::FixedUpdate(double dt) {
         }
 
         // === 正常游戏逻辑 ===
+
+        // 首次进入游戏，启动所选关卡
+        if (!m_levelManager.IsStarted()) {
+            m_levelManager.StartLevel(m_uiManager.GetSelectedLevel());
+            m_scoreManager.ResetRun();
+        }
+
         m_starField.Update(static_cast<float>(dt));
 
         // 玩家更新
@@ -168,7 +178,7 @@ void Game::FixedUpdate(double dt) {
     }
 
     if (state == GameState::PAUSED) {
-        m_uiManager.HandleInput(m_input, m_player);
+        m_uiManager.HandleInput(m_input, m_player, m_scoreManager);
     }
 }
 
@@ -483,9 +493,9 @@ void Game::Render(double /*interpolationAlpha*/) {
     // Layer 0: 星空背景
     m_starField.Render(*g);
 
-    if (m_uiManager.GetState() == GameState::PLAYING
-        || m_uiManager.GetState() == GameState::PAUSED
-        || m_uiManager.GetState() == GameState::LEVEL_TRANSITION) {
+    GameState gs = m_uiManager.GetState();
+    if (gs == GameState::PLAYING || gs == GameState::PAUSED
+        || gs == GameState::LEVEL_TRANSITION) {
 
         // Layer 1: 道具
         for (auto& p : m_powerUps) {

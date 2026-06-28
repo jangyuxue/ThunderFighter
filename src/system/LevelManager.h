@@ -34,6 +34,9 @@ public:
     // 通知 Boss 被击败
     void OnBossDefeated();
 
+    // 是否已初始化
+    bool IsStarted() const { return m_currentDef != nullptr; }
+
     // 获取当前关卡名
     const std::string& GetLevelName() const;
 
