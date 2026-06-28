@@ -13,7 +13,18 @@ static int GetMissionReward(int i) {
 }
 
 UIManager::UIManager() {
-    // 创建字体
+    // 字体在 Init() 中延迟创建（需要 GDI+ 已初始化）
+}
+
+UIManager::~UIManager() {
+    delete m_titleFont;
+    delete m_menuFont;
+    delete m_buttonFont;
+    delete m_smallFont;
+    delete m_hudFont;
+}
+
+void UIManager::Init() {
     m_titleFont  = new Gdiplus::Font(L"Arial", 34, Gdiplus::FontStyleBold);
     m_menuFont   = new Gdiplus::Font(L"Arial", 20, Gdiplus::FontStyleBold);
     m_buttonFont = new Gdiplus::Font(L"Arial", 15, Gdiplus::FontStyleRegular);

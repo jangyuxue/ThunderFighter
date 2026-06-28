@@ -29,7 +29,9 @@ enum class GameState {
 class UIManager {
 public:
     UIManager();
+    ~UIManager();
 
+    void Init();  // 延迟初始化字体（需在 GDI+ 启动后调用）
     void SetState(GameState state);
     GameState GetState() const { return m_state; }
 

@@ -25,7 +25,8 @@ bool Game::Initialize(HWND hWnd) {
         return false;
     }
 
-    m_input.SetWindow(hWnd);  // 鼠标坐标转换需要窗口句柄
+    m_input.SetWindow(hWnd);
+    m_uiManager.Init();      // 字体创建需在 GDI+ 启动后
     m_particleSystem.SetPool(&m_particlePool);
     m_starField.Init();
     m_isRunning = true;
