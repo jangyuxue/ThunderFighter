@@ -9,8 +9,6 @@ namespace Config {
     // ---- 窗口 ----
     constexpr int CANVAS_WIDTH  = 480;
     constexpr int CANVAS_HEIGHT = 720;
-    constexpr int WINDOW_WIDTH  = CANVAS_WIDTH + 16;
-    constexpr int WINDOW_HEIGHT = CANVAS_HEIGHT + 38;
 
     // ---- 游戏循环 ----
     constexpr double FIXED_TIMESTEP = 1.0 / 60.0;

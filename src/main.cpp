@@ -10,7 +10,7 @@ int WINAPI WinMain(HINSTANCE /*hInstance*/, HINSTANCE /*hPrevInstance*/,
     // 创建窗口
     Window window;
     if (!window.Create(L"ThunderFighterClass", L"Thunder Fighter - 雷霆战机",
-                       Config::WINDOW_WIDTH, Config::WINDOW_HEIGHT)) {
+                       Config::CANVAS_WIDTH, Config::CANVAS_HEIGHT)) {
         MessageBoxW(nullptr, L"Failed to create window!", L"Error",
                     MB_OK | MB_ICONERROR);
         return 1;

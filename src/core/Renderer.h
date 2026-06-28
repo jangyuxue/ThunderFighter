@@ -7,6 +7,8 @@
 
 // ============================================================
 // GDI+ 双缓冲渲染器
+// 使用 GDI 位图 + GDI+ Graphics（非 GDI+ Bitmap），
+// 绘制直接写入 GDI 位图，BitBlt 无需 GetHBITMAP 快照
 // ============================================================
 class Renderer {
 public:
@@ -16,11 +18,9 @@ public:
     bool Initialize(HWND hWnd, int canvasWidth, int canvasHeight);
     void Shutdown();
 
-    // 每帧调用
-    void BeginFrame();   // 清空后台缓冲
-    void EndFrame();     // 将后台缓冲 blit 到屏幕
+    void BeginFrame();
+    void EndFrame();
 
-    // 获取绘图接口
     Gdiplus::Graphics* GetGraphics() { return m_graphics; }
     ResourceManager&   GetResources() { return m_resources; }
 
@@ -28,16 +28,16 @@ public:
     int GetCanvasHeight() const { return m_canvasHeight; }
 
 private:
-    HWND                m_hWnd    = nullptr;
-    int                 m_canvasWidth  = 0;
-    int                 m_canvasHeight = 0;
-    ULONG_PTR           m_gdiplusToken = 0;
+    HWND             m_hWnd          = nullptr;
+    int              m_canvasWidth   = 0;
+    int              m_canvasHeight  = 0;
+    ULONG_PTR        m_gdiplusToken  = 0;
 
-    Gdiplus::Bitmap*    m_backBuffer = nullptr;
-    Gdiplus::Graphics*  m_graphics   = nullptr;
-    HDC                 m_bufferDC   = nullptr;
-    HBITMAP             m_hBitmap    = nullptr;
-    HBITMAP             m_hOldBitmap = nullptr;
+    // GDI 双缓冲（正确方式：GDI 位图 + GDI+ Graphics）
+    HDC              m_bufferDC      = nullptr;
+    HBITMAP          m_hBitmap       = nullptr;
+    HBITMAP          m_hOldBitmap    = nullptr;
+    Gdiplus::Graphics* m_graphics    = nullptr;
 
-    ResourceManager     m_resources;
+    ResourceManager  m_resources;
 };

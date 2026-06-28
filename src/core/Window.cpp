@@ -30,18 +30,24 @@ bool Window::Create(const std::wstring& className,
         return false;
     }
 
+    // 计算实际窗口大小（使客户区等于指定宽高）
+    RECT rect = { 0, 0, width, height };
+    AdjustWindowRect(&rect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE);
+    int winW = rect.right - rect.left;
+    int winH = rect.bottom - rect.top;
+
     // 居中窗口
     int screenW = GetSystemMetrics(SM_CXSCREEN);
     int screenH = GetSystemMetrics(SM_CYSCREEN);
-    int x = (screenW - width)  / 2;
-    int y = (screenH - height) / 2;
+    int x = (screenW - winW) / 2;
+    int y = (screenH - winH) / 2;
 
     m_hWnd = CreateWindowExW(
         0,
         className.c_str(),
         title.c_str(),
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        x, y, width, height,
+        x, y, winW, winH,
         nullptr, nullptr, m_hInstance, nullptr
     );
 

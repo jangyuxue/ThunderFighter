@@ -19,15 +19,33 @@ bool Renderer::Initialize(HWND hWnd, int canvasWidth, int canvasHeight) {
         return false;
     }
 
-    // 创建后台缓冲位图
-    m_backBuffer = new Gdiplus::Bitmap(canvasWidth, canvasHeight,
-                                        PixelFormat32bppARGB);
-    if (m_backBuffer->GetLastStatus() != Gdiplus::Ok) {
+    // ---- 正确的双缓冲方式：使用 GDI 位图 + GDI+ Graphics ----
+    HDC screenDC = GetDC(m_hWnd);
+
+    // 1. 创建与屏幕兼容的内存 DC
+    m_bufferDC = CreateCompatibleDC(screenDC);
+    if (!m_bufferDC) {
+        ReleaseDC(m_hWnd, screenDC);
         return false;
     }
 
-    // 创建 Graphics 对象（绘制到后台缓冲）
-    m_graphics = new Gdiplus::Graphics(m_backBuffer);
+    // 2. 创建与屏幕兼容的位图
+    m_hBitmap = CreateCompatibleBitmap(screenDC, canvasWidth, canvasHeight);
+    if (!m_hBitmap) {
+        DeleteDC(m_bufferDC);
+        m_bufferDC = nullptr;
+        ReleaseDC(m_hWnd, screenDC);
+        return false;
+    }
+
+    // 3. 将位图选入内存 DC
+    m_hOldBitmap = (HBITMAP)SelectObject(m_bufferDC, m_hBitmap);
+
+    ReleaseDC(m_hWnd, screenDC);
+
+    // 4. 创建 GDI+ Graphics，目标为内存 DC
+    //    所有 GDI+ 绘制直接写入 GDI 位图，无需 GetHBITMAP 快照
+    m_graphics = new Gdiplus::Graphics(m_bufferDC);
     if (m_graphics->GetLastStatus() != Gdiplus::Ok) {
         return false;
     }
@@ -37,25 +55,19 @@ bool Renderer::Initialize(HWND hWnd, int canvasWidth, int canvasHeight) {
     m_graphics->SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
     m_graphics->SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
 
-    // 创建兼容 DC（用于 BitBlt）
-    HDC screenDC = GetDC(m_hWnd);
-    m_bufferDC = CreateCompatibleDC(screenDC);
-
-    // 从 GDI+ 位图获取 HBITMAP
-    m_backBuffer->GetHBITMAP(Gdiplus::Color(0, 0, 0, 0), &m_hBitmap);
-    m_hOldBitmap = (HBITMAP)SelectObject(m_bufferDC, m_hBitmap);
-    ReleaseDC(m_hWnd, screenDC);
-
     return true;
 }
 
 void Renderer::BeginFrame() {
-    // 深空蓝黑色背景
+    // 深空背景色
     m_graphics->Clear(Gdiplus::Color(5, 5, 18));
 }
 
 void Renderer::EndFrame() {
-    // 将后台缓冲 BitBlt 到屏幕
+    // 确保所有 GDI+ 绘制命令已提交到 GDI 位图
+    m_graphics->Flush(Gdiplus::FlushIntentionSync);
+
+    // 将内存 DC 的内容 BitBlt 到屏幕
     HDC screenDC = GetDC(m_hWnd);
     BitBlt(screenDC, 0, 0, m_canvasWidth, m_canvasHeight,
            m_bufferDC, 0, 0, SRCCOPY);
@@ -63,24 +75,25 @@ void Renderer::EndFrame() {
 }
 
 void Renderer::Shutdown() {
+    // 清理 GDI+ Graphics
+    delete m_graphics;
+    m_graphics = nullptr;
+
     // 清理 GDI 资源
     if (m_bufferDC) {
-        if (m_hBitmap) {
+        if (m_hOldBitmap) {
             SelectObject(m_bufferDC, m_hOldBitmap);
+            m_hOldBitmap = nullptr;
+        }
+        if (m_hBitmap) {
             DeleteObject(m_hBitmap);
             m_hBitmap = nullptr;
-            m_hOldBitmap = nullptr;
         }
         DeleteDC(m_bufferDC);
         m_bufferDC = nullptr;
     }
 
-    // 清理 GDI+ 资源
     m_resources.Clear();
-    delete m_graphics;
-    m_graphics = nullptr;
-    delete m_backBuffer;
-    m_backBuffer = nullptr;
 
     // 关闭 GDI+
     if (m_gdiplusToken != 0) {
