@@ -59,7 +59,7 @@ bool Renderer::Initialize(HWND hWnd, int canvasWidth, int canvasHeight) {
 }
 
 void Renderer::BeginFrame() {
-    // 深空背景色
+    if (!m_graphics) return;
     m_graphics->Clear(Gdiplus::Color(5, 5, 18));
 }
 

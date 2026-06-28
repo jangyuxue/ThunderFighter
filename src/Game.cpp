@@ -85,6 +85,21 @@ void Game::FixedUpdate(double dt) {
         || state == GameState::LEVEL_SELECT || state == GameState::SHOP
         || state == GameState::MISSIONS || state == GameState::ACHIEVEMENTS) {
         m_uiManager.HandleInput(m_input, m_player, m_scoreManager);
+
+        // HUB/关卡选择 → 开始游戏
+        if (m_uiManager.ShouldStartGame()) {
+            m_uiManager.ResetStartFlag();
+            m_uiManager.SetState(GameState::PLAYING);
+            m_levelManager.Reset();
+            m_scoreManager.ResetRun();
+            m_enemies.clear();
+            m_powerUps.clear();
+            m_playerBullets.ReleaseAll();
+            m_enemyBullets.ReleaseAll();
+            m_particlePool.ReleaseAll();
+            m_player.Init(static_cast<PlayerType>(m_uiManager.GetSelectedAircraft()));
+        }
+
         m_starField.Update(static_cast<float>(dt));
         return;
     }
@@ -121,15 +136,16 @@ void Game::FixedUpdate(double dt) {
 
         m_starField.Update(static_cast<float>(dt));
 
-        // 玩家更新
-        UpdatePlayer(static_cast<float>(dt));
-
-        // 检查玩家死亡
-        if (!m_player.IsAlive()) {
+        // 检查玩家死亡（放在更新之前，防止死亡后仍能操作）
+        if (!m_player.IsAlive() || !m_player.IsActive()) {
             m_particleSystem.EmitBossExplosion(m_player.GetX(), m_player.GetY());
+            CleanupDeadEntities();
             m_uiManager.SetState(GameState::GAME_OVER);
             return;
         }
+
+        // 玩家更新
+        UpdatePlayer(static_cast<float>(dt));
 
         // 关卡管理（生成敌人）
         m_levelManager.Update(static_cast<float>(dt), m_enemies, m_powerUps);
@@ -207,20 +223,22 @@ void Game::UpdatePlayer(float dt) {
 
     // 炸弹
     if (m_input.IsBombPressed() && m_player.GetBombs() > 0) {
+        m_player.UseBomb();  // 消耗一个炸弹
         // 清屏
         for (auto& e : m_enemies) {
-            if (e->IsActive()) {
+            if (e->IsActive() && !e->IsDying()) {
                 e->TakeDamage(999);
-                m_scoreManager.AddScore(e->GetScoreValue());
-                m_particleSystem.EmitExplosion(e->GetX(), e->GetY(), 30.0f, 20);
+                if (e->IsDead() || e->IsDying()) {
+                    m_scoreManager.AddScore(e->GetScoreValue());
+                    m_particleSystem.EmitExplosion(e->GetX(), e->GetY(), 30.0f, 20);
+                }
             }
         }
         // 清除所有敌方子弹
         for (auto& b : m_enemyBullets) {
             if (b.IsActive()) b.Deactivate();
         }
-        m_player.AddBomb();  // 消耗一个炸弹
-        // 屏幕闪白效果（通过粒子）
+        // 屏幕闪白效果
         m_particleSystem.EmitExplosion(
             Config::CANVAS_WIDTH * 0.5f,
             Config::CANVAS_HEIGHT * 0.5f,

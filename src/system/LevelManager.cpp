@@ -37,7 +37,8 @@ void LevelManager::StartLevel(int level) {
     m_levelComplete = false;
     m_inTransition  = false;
 
-    if (level <= static_cast<int>(LEVELS.size())) {
+    m_bossSpawned = false;  // 重置 Boss 生成标记
+    if (level >= 1 && level <= static_cast<int>(LEVELS.size())) {
         m_currentDef = &LEVELS[level - 1];
     } else {
         m_allComplete = true;

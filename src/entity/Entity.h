@@ -53,9 +53,9 @@ public:
     // 是否在屏幕内（含边距）
     bool IsOnScreen(float margin = 50.0f) const {
         return m_y > -margin
-            && m_y < 720.0f + margin
+            && m_y < static_cast<float>(Config::CANVAS_HEIGHT) + margin
             && m_x > -margin
-            && m_x < 480.0f + margin;
+            && m_x < static_cast<float>(Config::CANVAS_WIDTH) + margin;
     }
 
     // ---- 更新 ----

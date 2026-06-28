@@ -144,8 +144,12 @@ void UIManager::Init() {
 void UIManager::SetState(GameState state) {
     m_prevState = m_state;
     m_state = state;
-    m_transitionAlpha = 0.0f;
     m_backTimer = 0.3f;  // 防止误触 ESC
+    if (state == GameState::LEVEL_TRANSITION) {
+        m_transitionAlpha = 1.0f;  // 开始过渡动画
+    } else {
+        m_transitionAlpha = 0.0f;
+    }
 }
 
 // ============================================================
@@ -157,11 +161,11 @@ void UIManager::HandleInput(InputManager& input, Player& /*player*/, ScoreManage
     bool md = input.IsMouseDown();
     bool mp = input.IsMousePressed();
 
-    if (m_backTimer > 0.0f) return;  // 冷却中
-
-    // ESC 全局返回
-    if (input.IsBackPressed() && m_state != GameState::HUB
-        && m_state != GameState::PLAYING && m_state != GameState::GAME_OVER) {
+    // ESC 全局返回（单独处理冷却）
+    if (input.IsBackPressed() && m_backTimer <= 0.0f
+        && m_state != GameState::HUB
+        && m_state != GameState::PLAYING
+        && m_state != GameState::GAME_OVER) {
         m_backTimer = 0.3f;
         SetState(m_prevState != m_state ? m_prevState : GameState::HUB);
         return;

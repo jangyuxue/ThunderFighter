@@ -27,8 +27,11 @@ public:
     // 道具效果
     void AddShield();
     void AddBomb();
+    void UseBomb();         // 消耗一个炸弹
     void ActivateSpeedBoost();
     void UpgradeWeapon();
+
+    using Entity::Update;   // 避免隐藏基类虚函数
 
     // 获取状态
     PlayerType GetType()        const { return m_type; }

@@ -39,10 +39,12 @@ void InputManager::Update() {
 
 // ---- 键盘方法 ----
 bool InputManager::IsKeyDown(int vkCode) const {
+    if (vkCode < 0 || vkCode >= 256) return false;
     return m_keyStates[vkCode] != 0;
 }
 
 bool InputManager::IsKeyPressed(int vkCode) const {
+    if (vkCode < 0 || vkCode >= 256) return false;
     return m_keyStates[vkCode] != 0 && m_prevKeyStates[vkCode] == 0;
 }
 

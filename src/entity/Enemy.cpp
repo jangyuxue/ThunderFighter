@@ -17,7 +17,8 @@ void Enemy::Init(float x, float y, int /*level*/) {
 void Enemy::Update(float dt) {
     if (m_state == State::DYING) {
         m_deathTimer += dt;
-        if (m_deathTimer > 0.3f) {
+        float deathDuration = (m_kind == EnemyKind::BOSS) ? 0.6f : 0.3f;
+        if (m_deathTimer > deathDuration) {
             m_state = State::DEAD;
             m_active = false;
         }

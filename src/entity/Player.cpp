@@ -111,11 +111,10 @@ void Player::TakeDamage(int amount) {
 
     if (m_lives > 0) {
         m_invincibleTimer = Config::PLAYER_INVINCIBLE_TIME;
-    }
-
-    // 死亡时武器降级
-    if (m_lives > 0 && m_weaponLevel > 0) {
-        --m_weaponLevel;
+        // 受伤时武器降级
+        if (m_weaponLevel > 0) --m_weaponLevel;
+    } else {
+        Deactivate();  // 死亡时停用实体
     }
 }
 
@@ -125,6 +124,10 @@ void Player::AddShield() {
 
 void Player::AddBomb() {
     if (m_bombs < 5) ++m_bombs;
+}
+
+void Player::UseBomb() {
+    if (m_bombs > 0) --m_bombs;
 }
 
 void Player::ActivateSpeedBoost() {
