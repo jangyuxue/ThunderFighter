@@ -1,0 +1,9 @@
+# .gitignore for Thunder Fighter
+
+# 构建产物
+obj/
+*.exe
+*.o
+
+# 最高分记录
+thunder.hsc

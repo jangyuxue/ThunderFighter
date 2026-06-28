@@ -1,0 +1,80 @@
+#include "system/ScoreManager.h"
+#include <cstdio>
+#include <cstring>
+
+ScoreManager::ScoreManager() {
+    memset(m_highScores, 0, sizeof(m_highScores));
+    LoadHighScores();
+}
+
+void ScoreManager::AddScore(unsigned int points) {
+    m_score += points * (1 + m_combo / 10);  // Combo 加成
+}
+
+void ScoreManager::AddCombo() {
+    ++m_combo;
+}
+
+void ScoreManager::ResetCombo() {
+    m_combo = 0;
+}
+
+bool ScoreManager::IsHighScore() const {
+    for (int i = 0; i < 10; ++i) {
+        if (m_score > m_highScores[i].score) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ScoreManager::InsertHighScore(const char* name) {
+    // 找到插入位置
+    int insertAt = 10;
+    for (int i = 0; i < 10; ++i) {
+        if (m_score > m_highScores[i].score) {
+            insertAt = i;
+            break;
+        }
+    }
+    if (insertAt >= 10) return;
+
+    // 后移
+    for (int i = 9; i > insertAt; --i) {
+        m_highScores[i] = m_highScores[i - 1];
+    }
+
+    // 插入
+    m_highScores[insertAt].score = m_score;
+    strncpy(m_highScores[insertAt].name, name, 31);
+    m_highScores[insertAt].name[31] = '\0';
+
+    SaveHighScores();
+}
+
+void ScoreManager::LoadHighScores() {
+    FILE* f = fopen("thunder.hsc", "rb");
+    if (!f) return;
+
+    // 读取 magic
+    char magic[5] = {};
+    if (fread(magic, 1, 4, f) == 4 && strncmp(magic, "THDR", 4) == 0) {
+        fread(m_highScores, sizeof(HighScoreEntry), 10, f);
+    }
+    fclose(f);
+}
+
+void ScoreManager::SaveHighScores() {
+    FILE* f = fopen("thunder.hsc", "wb");
+    if (!f) return;
+
+    const char* magic = "THDR";
+    fwrite(magic, 1, 4, f);
+    fwrite(m_highScores, sizeof(HighScoreEntry), 10, f);
+    fclose(f);
+}
+
+void ScoreManager::Reset() {
+    m_score = 0;
+    m_combo = 0;
+}
