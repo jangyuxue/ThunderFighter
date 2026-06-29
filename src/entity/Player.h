@@ -25,9 +25,10 @@ public:
     void TakeDamage(int amount);
 
     // 道具效果
+    void AddExtraLife();    // 商店：额外生命
     void AddShield();
     void AddBomb();
-    void UseBomb();         // 消耗一个炸弹
+    void UseBomb();
     void ActivateSpeedBoost();
     void UpgradeWeapon();
 

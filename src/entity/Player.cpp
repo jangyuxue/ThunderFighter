@@ -111,11 +111,15 @@ void Player::TakeDamage(int amount) {
 
     if (m_lives > 0) {
         m_invincibleTimer = Config::PLAYER_INVINCIBLE_TIME;
-        // 受伤时武器降级
+        m_shootCooldown = 0.0f;   // 重置射击冷却，防止卡住
         if (m_weaponLevel > 0) --m_weaponLevel;
     } else {
         Deactivate();  // 死亡时停用实体
     }
+}
+
+void Player::AddExtraLife() {
+    if (m_lives < Config::PLAYER_MAX_LIVES) ++m_lives;
 }
 
 void Player::AddShield() {

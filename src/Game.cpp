@@ -99,6 +99,11 @@ void Game::FixedUpdate(double dt) {
             m_enemyBullets.ReleaseAll();
             m_particlePool.ReleaseAll();
             m_player.Init(static_cast<PlayerType>(m_uiManager.GetSelectedAircraft()));
+            // 应用商店永久升级
+            int upgrades = m_uiManager.GetPlayerUpgrades();
+            if (upgrades & 2) m_player.UpgradeWeapon();  // 武器预升级
+            if (upgrades & 4) m_player.AddShield();       // 起始护盾
+            if (upgrades & 1) m_player.AddExtraLife();    // +1生命
         }
 
         m_starField.Update(static_cast<float>(dt));

@@ -11,24 +11,32 @@ UIManager::~UIManager() {
     delete m_buttonFont; delete m_smallFont; delete m_hudFont;
 }
 
-// 安全创建中文字体（逐个尝试直到找到可用的）
-static Gdiplus::Font* MakeFont(const wchar_t* names[], int count, float size, int style) {
-    for (int i = 0; i < count; ++i) {
-        Gdiplus::FontFamily fm(names[i]);
-        if (fm.IsAvailable()) return new Gdiplus::Font(&fm, size, style, Gdiplus::UnitPoint);
+// 获取系统默认中文字体名称（绝对可靠）
+static std::wstring GetSystemFontName() {
+    // 方法1: 从 DEFAULT_GUI_FONT 获取系统默认字体名
+    NONCLIENTMETRICSW ncm = {};
+    ncm.cbSize = sizeof(NONCLIENTMETRICSW);
+    if (SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0)) {
+        return ncm.lfMessageFont.lfFaceName;  // 系统消息字体，中文Windows必然是中文
     }
-    return new Gdiplus::Font(L"Arial", size, style, Gdiplus::UnitPoint);
+    // 方法2: GetStockObject
+    HFONT hFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    if (hFont) {
+        LOGFONTW lf = {};
+        GetObjectW(hFont, sizeof(LOGFONTW), &lf);
+        if (lf.lfFaceName[0]) return lf.lfFaceName;
+    }
+    return L"Microsoft YaHei";  // 最终fallback
 }
 
 void UIManager::Init() {
-    // 中文字体优先级: 微软雅黑 > Microsoft YaHei > SimHei > SimSun
-    const wchar_t* zhFonts[] = { L"微软雅黑", L"Microsoft YaHei", L"SimHei", L"宋体", L"SimSun", L"NSimSun" };
-    const int zhCount = 6;
-    m_titleFont  = MakeFont(zhFonts, zhCount, 24, Gdiplus::FontStyleBold);
-    m_menuFont   = MakeFont(zhFonts, zhCount, 16, Gdiplus::FontStyleBold);
-    m_buttonFont = MakeFont(zhFonts, zhCount, 12, Gdiplus::FontStyleRegular);
-    m_smallFont  = MakeFont(zhFonts, zhCount, 10, Gdiplus::FontStyleRegular);
-    m_hudFont    = MakeFont(zhFonts, zhCount, 11, Gdiplus::FontStyleBold);
+    std::wstring fontName = GetSystemFontName();
+
+    m_titleFont  = new Gdiplus::Font(fontName.c_str(), 24, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
+    m_menuFont   = new Gdiplus::Font(fontName.c_str(), 16, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
+    m_buttonFont = new Gdiplus::Font(fontName.c_str(), 12, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
+    m_smallFont  = new Gdiplus::Font(fontName.c_str(), 10, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
+    m_hudFont    = new Gdiplus::Font(fontName.c_str(), 11, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
 
     float cx = Config::CANVAS_WIDTH * 0.5f;
 
