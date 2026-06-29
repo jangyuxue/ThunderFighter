@@ -11,15 +11,24 @@ UIManager::~UIManager() {
     delete m_buttonFont; delete m_smallFont; delete m_hudFont;
 }
 
+// 安全创建中文字体（逐个尝试直到找到可用的）
+static Gdiplus::Font* MakeFont(const wchar_t* names[], int count, float size, int style) {
+    for (int i = 0; i < count; ++i) {
+        Gdiplus::FontFamily fm(names[i]);
+        if (fm.IsAvailable()) return new Gdiplus::Font(&fm, size, style, Gdiplus::UnitPoint);
+    }
+    return new Gdiplus::Font(L"Arial", size, style, Gdiplus::UnitPoint);
+}
+
 void UIManager::Init() {
-    // 使用系统默认中文字体（避免乱码）
-    Gdiplus::FontFamily ff(L"");
-    Gdiplus::Font ffDefault(L"SimSun", 12);
-    m_titleFont  = new Gdiplus::Font(L"SimHei", 32, Gdiplus::FontStyleBold);
-    m_menuFont   = new Gdiplus::Font(L"SimHei", 20, Gdiplus::FontStyleBold);
-    m_buttonFont = new Gdiplus::Font(L"SimSun", 14, Gdiplus::FontStyleRegular);
-    m_smallFont  = new Gdiplus::Font(L"SimSun", 11, Gdiplus::FontStyleRegular);
-    m_hudFont    = new Gdiplus::Font(L"SimSun", 13, Gdiplus::FontStyleBold);
+    // 中文字体优先级: 微软雅黑 > Microsoft YaHei > SimHei > SimSun
+    const wchar_t* zhFonts[] = { L"微软雅黑", L"Microsoft YaHei", L"SimHei", L"宋体", L"SimSun", L"NSimSun" };
+    const int zhCount = 6;
+    m_titleFont  = MakeFont(zhFonts, zhCount, 24, Gdiplus::FontStyleBold);
+    m_menuFont   = MakeFont(zhFonts, zhCount, 16, Gdiplus::FontStyleBold);
+    m_buttonFont = MakeFont(zhFonts, zhCount, 12, Gdiplus::FontStyleRegular);
+    m_smallFont  = MakeFont(zhFonts, zhCount, 10, Gdiplus::FontStyleRegular);
+    m_hudFont    = MakeFont(zhFonts, zhCount, 11, Gdiplus::FontStyleBold);
 
     float cx = Config::CANVAS_WIDTH * 0.5f;
 
@@ -119,6 +128,29 @@ void UIManager::Init() {
     m_levelUnlocked[0] = true;
 }
 
+void UIManager::LoadData(ScoreManager& score) {
+    score.LoadShopData(m_shopOwned, 8);
+    score.LoadProgress();
+    // 重建 playerUpgrades 位标记
+    m_playerUpgrades = 0;
+    if (m_shopOwned[0]) m_playerUpgrades |= 1;
+    if (m_shopOwned[1]) m_playerUpgrades |= 2;
+    if (m_shopOwned[2]) m_playerUpgrades |= 4;
+    if (m_shopOwned[4]) m_playerUpgrades |= 8;
+}
+
+void UIManager::SaveData(ScoreManager& score) {
+    score.SaveShopData(m_shopOwned, 8);
+    score.SaveProgress();
+}
+
+void UIManager::OnLevelCleared(int level) {
+    if (level >= 1 && level <= 5) {
+        m_levelCleared[level - 1] = true;
+        if (level < 5) m_levelUnlocked[level] = true;  // 解锁下一关
+    }
+}
+
 // 状态管理
 void UIManager::SetState(GameState state) {
     m_prevState = m_state;
@@ -132,33 +164,37 @@ void UIManager::HandleInput(InputManager& input, Player& /*player*/, ScoreManage
     int mx = input.GetMouseX(), my = input.GetMouseY();
     bool md = input.IsMouseDown(), mp = input.IsMousePressed();
 
-    // ESC 返回（独立冷却）
-    if (input.IsBackPressed() && m_backTimer <= 0.0f
-        && m_state != GameState::HUB && m_state != GameState::PLAYING
-        && m_state != GameState::GAME_OVER) {
-        m_backTimer = 0.3f;
-        SetState(m_prevState != m_state ? m_prevState : GameState::HUB);
-        return;
+    // ESC 全局返回
+    if (input.IsBackPressed()) {
+        if (m_state == GameState::HUB || m_state == GameState::PLAYING) {
+            // HUB: ESC 无操作; PLAYING: 由下面的 PAUSE 处理
+        } else if (m_state == GameState::PAUSED) {
+            SetState(GameState::PLAYING);
+            return;
+        } else if (m_state == GameState::GAME_OVER) {
+            m_shouldStartGame = false;
+            SetState(GameState::HUB);
+            return;
+        } else {
+            SetState(GameState::HUB);
+            return;
+        }
     }
 
     switch (m_state) {
     case GameState::HUB:
         UpdateHubButtons(mx, my, md, mp);
-        // 键盘切换战机
         if (input.IsKeyPressed(VK_LEFT) || input.IsKeyPressed('A'))
             m_selectedAircraft = (m_selectedAircraft + 2) % 3;
         if (input.IsKeyPressed(VK_RIGHT) || input.IsKeyPressed('D'))
             m_selectedAircraft = (m_selectedAircraft + 1) % 3;
-        if (input.IsConfirmPressed()) {
-            m_shouldStartGame = true;
-        }
+        if (input.IsConfirmPressed()) m_shouldStartGame = true;
         break;
     case GameState::PLAYING:
         if (input.IsPausePressed()) SetState(GameState::PAUSED);
         break;
     case GameState::PAUSED:
-        if (input.IsPausePressed() || input.IsBackPressed())
-            SetState(GameState::PLAYING);
+        if (input.IsPausePressed()) SetState(GameState::PLAYING);
         break;
     case GameState::LEVEL_SELECT:
         UpdateLevelSelectButtons(mx, my, md, mp);
@@ -172,14 +208,15 @@ void UIManager::HandleInput(InputManager& input, Player& /*player*/, ScoreManage
     case GameState::ACHIEVEMENTS:
         UpdateAchievementsButtons(mx, my, md, mp);
         break;
+    case GameState::HIGH_SCORE:
+        m_backButton.Update(mx, my, md, mp);  // 排行榜返回按钮
+        if (m_backButton.IsClicked()) SetState(GameState::HUB);
+        break;
     case GameState::GAME_OVER:
-        if (input.IsConfirmPressed() || input.IsMousePressed()) {
+        if (input.IsConfirmPressed() || mp) {
             m_shouldStartGame = false;
             SetState(GameState::HUB);
         }
-        break;
-    case GameState::HIGH_SCORE:
-        if (input.IsBackPressed()) SetState(GameState::HUB);
         break;
     default: break;
     }

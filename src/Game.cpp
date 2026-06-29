@@ -26,7 +26,8 @@ bool Game::Initialize(HWND hWnd) {
     }
 
     m_input.SetWindow(hWnd);
-    m_uiManager.Init();      // 字体创建需在 GDI+ 启动后
+    m_uiManager.Init();
+    m_uiManager.LoadData(m_scoreManager);  // 读档
     m_particleSystem.SetPool(&m_particlePool);
     m_starField.Init();
     m_isRunning = true;
@@ -117,6 +118,9 @@ void Game::FixedUpdate(double dt) {
         if (state == GameState::LEVEL_TRANSITION) {
             m_levelManager.Update(static_cast<float>(dt), m_enemies, m_powerUps);
             if (!m_levelManager.IsInTransition()) {
+                int cleared = m_levelManager.GetCurrentLevel() - 1;
+                m_uiManager.OnLevelCleared(cleared);  // 记录通关 + 解锁下一关
+                m_uiManager.SaveData(m_scoreManager);  // 自动存档
                 m_levelManager.StartLevel(m_levelManager.GetCurrentLevel());
                 m_uiManager.SetState(GameState::PLAYING);
                 m_weaponSystem = WeaponSystem();
@@ -556,7 +560,7 @@ void Game::Render(double /*interpolationAlpha*/) {
 void Game::Shutdown() {
     m_isRunning = false;
 
-    m_scoreManager.SaveProgress();
+    m_uiManager.SaveData(m_scoreManager);
     m_scoreManager.SaveHighScores();
 
     m_enemies.clear();

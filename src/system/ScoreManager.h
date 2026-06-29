@@ -35,6 +35,8 @@ public:
 
     void SaveProgress();   // 保存金币等
     void LoadProgress();   // 读取进度
+    void SaveShopData(const bool* owned, int count);   // 保存商店购买
+    void LoadShopData(bool* owned, int count);         // 读取商店购买
     void Reset();
     void ResetRun();
 

@@ -87,3 +87,46 @@ void ScoreManager::LoadProgress() {
     }
     fclose(f);
 }
+
+void ScoreManager::SaveShopData(const bool* owned, int count) {
+    (void)owned;  // 参数保留给调用方传入
+    FILE* f = fopen("thunder.sav", "rb+");
+    if (!f) f = fopen("thunder.sav", "wb");
+    if (!f) return;
+    char magic[5] = {};
+    fread(magic, 1, 4, f);
+    if (strncmp(magic, "TSAV", 4) != 0) {
+        fseek(f, 0, SEEK_SET);
+        fwrite("TSAV", 1, 4, f);
+        int zero = 0;
+        fwrite(&zero, sizeof(int), 1, f);
+        fwrite(&zero, sizeof(int), 1, f);
+    }
+    fseek(f, 0, SEEK_END);
+    fwrite("SHOP", 1, 4, f);
+    for (int i = 0; i < count; ++i) {
+        unsigned char b = owned[i] ? 1 : 0;
+        fwrite(&b, 1, 1, f);
+    }
+    fclose(f);
+}
+
+void ScoreManager::LoadShopData(bool* owned, int count) {
+    FILE* f = fopen("thunder.sav", "rb");
+    if (!f) return;
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    while (ftell(f) < size - 8) {
+        char tag[5] = {};
+        if (fread(tag, 1, 4, f) == 4 && strncmp(tag, "SHOP", 4) == 0) {
+            for (int i = 0; i < count; ++i) {
+                unsigned char b;
+                if (fread(&b, 1, 1, f) == 1) owned[i] = (b != 0);
+            }
+            break;
+        }
+        fseek(f, -3, SEEK_CUR);
+    }
+    fclose(f);
+}

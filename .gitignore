@@ -5,8 +5,9 @@ obj/
 *.exe
 *.o
 
-# 最高分记录
+# 存档文件
 thunder.hsc
+thunder.sav
 
 # 截图
 screenshot.png

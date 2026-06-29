@@ -31,7 +31,10 @@ public:
     UIManager();
     ~UIManager();
 
-    void Init();  // 延迟初始化字体（需在 GDI+ 启动后调用）
+    void Init();
+    void LoadData(ScoreManager& score);   // 读档
+    void SaveData(ScoreManager& score);   // 存档
+    void OnLevelCleared(int level);        // 关卡通关回调
     void SetState(GameState state);
     GameState GetState() const { return m_state; }
 
