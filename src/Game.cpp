@@ -99,11 +99,15 @@ void Game::FixedUpdate(double dt) {
             m_enemyBullets.ReleaseAll();
             m_particlePool.ReleaseAll();
             m_player.Init(static_cast<PlayerType>(m_uiManager.GetSelectedAircraft()));
-            // 应用商店永久升级
-            int upgrades = m_uiManager.GetPlayerUpgrades();
-            if (upgrades & 2) m_player.UpgradeWeapon();  // 武器预升级
-            if (upgrades & 4) m_player.AddShield();       // 起始护盾
-            if (upgrades & 1) m_player.AddExtraLife();    // +1生命
+            // 应用商店永久升级（全部8项，按 HasShopItem 直接判定，不再用位标记）
+            if (m_uiManager.HasShopItem(5)) m_player.IncreaseMaxLives();   // 最大生命+1（先提上限）
+            if (m_uiManager.HasShopItem(0)) m_player.AddExtraLife();      // 额外生命+1
+            if (m_uiManager.HasShopItem(1)) m_player.UpgradeWeapon();     // 武器预升级
+            if (m_uiManager.HasShopItem(2)) m_player.AddShield();         // 起始护盾
+            if (m_uiManager.HasShopItem(7)) m_player.AddShield();         // 起始护盾+1
+            if (m_uiManager.HasShopItem(3)) { m_player.AddBomb(); m_player.AddBomb(); } // 额外炸弹x2
+            if (m_uiManager.HasShopItem(6)) m_player.AddBomb();           // 起始炸弹+1
+            if (m_uiManager.HasShopItem(4)) m_player.ApplyPermanentSpeed(); // 永久加速
         }
 
         m_starField.Update(static_cast<float>(dt));

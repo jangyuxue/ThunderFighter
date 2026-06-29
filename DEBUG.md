@@ -69,3 +69,15 @@
 - **修复**: 重设计为单一原子存档格式 `TSAV|version|gold|totalGold|shopOwned[8]|levelCleared[5]|levelUnlocked[5]`(34字节)，单一写入函数 `SaveAll`/`LoadAll`，删除旧的 SaveProgress/SaveShopData。购买后立即 `SaveData`。1000金币仅在无存档(首次启动)时赠送。旧档(12字节无version)自动迁移保留金币。
 - **验证**: 无头往返测试 6/6 通过（金币/商店能力/通关记录/解锁记录持久化、未购买保持false、文件34字节）。
 - **教训**: 多个写函数操作同一文件且语义不一致(追加 vs 截断)是数据丢失的温床。同一持久化目标应只有单一写入路径。
+
+## #11: 商店8个道具仅3个生效 + 内联字体可能缺字形
+- **触发**: 用户购买能力后即使存档保留，部分能力（额外炸弹/永久加速/最大生命/起始炸弹/起始护盾）开局仍不生效
+- **根因(生效)**: Game.cpp 仅按 `m_playerUpgrades` 位标记应用 3 项（id0/1/2 对应 bit1/2/4），id3/4/5/6/7 设置了 `m_shopOwned` 但从未映射到位标记、也从未应用。id4(永久加速)的 bit8 设了却无人读取。`m_playerUpgrades` 这个位标记本身只编码 4/8 项，是"5个道具无效"的根因。
+- **根因(字体)**: 内联字体硬编码 `L"Microsoft YaHei"`，本机实测该 family 名返回空(非系统消息字体 `Microsoft YaHei UI`)，存在回退到缺 CJK 字形字体的风险。
+- **修复**:
+  1. 删除 `m_playerUpgrades` 位标记机制（含成员、GetPlayerUpgrades、LoadData 重建、BuyShopItem 置位）。
+  2. Game.cpp 改为按 `HasShopItem(i)` 逐项应用全部8项，新增 `Player::ApplyPermanentSpeed`(提升baseSpeed) 与 `Player::IncreaseMaxLives`(提升上限+补命)；AddExtraLife 改用运行时 `m_maxLives` 上限(原用编译期常量)。
+  3. UIManager 缓存系统字体名 `m_fontName`，所有内联 Font 改用它，确保 CJK 字形。
+  4. 商店预览改读 `m_shopOwned`，准确展示生命/上限/武器/护盾/炸弹/加速。
+- **验证**: 无头测试 6/6 通过（8项道具全部作用于Player、最大生命上限真提升至6）；`mingw32-make` 构建成功；exe 启动冒烟测试进程存活无崩溃。
+- **教训**: 用位标记压缩状态时，若新增项忘记扩展位标记映射，会出现"已购但不生效"的静默失败。直接以原始布尔数组为单一数据源更可靠。

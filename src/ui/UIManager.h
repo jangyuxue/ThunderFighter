@@ -4,6 +4,7 @@
 #include <objbase.h>
 #include <gdiplus.h>
 #include <vector>
+#include <string>
 #include "core/InputManager.h"
 #include "entity/Player.h"
 #include "system/ScoreManager.h"
@@ -55,7 +56,6 @@ public:
     bool HasShopItem(int id) const;
     void BuyShopItem(int id, ScoreManager& score);
     int  GetShopItemCost(int id) const;
-    int  GetPlayerUpgrades() const { return m_playerUpgrades; }
 
 private:
     // 渲染子界面
@@ -111,9 +111,6 @@ private:
     float m_achievementNotifyTimer = 0.0f;
     int   m_achievementNotifyId = -1;
 
-    // 玩家永久升级
-    int m_playerUpgrades = 0;   // bit flags: 1=extra life, 2=weapon lv2, 4=start shield, 8=speed boost
-
     // 关卡解锁
     bool m_levelUnlocked[5] = { true, false, false, false, false };
     bool m_levelCleared[5] = {};
@@ -124,4 +121,5 @@ private:
     Gdiplus::Font* m_buttonFont = nullptr;
     Gdiplus::Font* m_smallFont  = nullptr;
     Gdiplus::Font* m_hudFont    = nullptr;
+    std::wstring m_fontName;   // 系统中文字体名，供内联 Font 复用（确保 CJK 字形）
 };

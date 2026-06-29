@@ -30,13 +30,13 @@ static std::wstring GetSystemFontName() {
 }
 
 void UIManager::Init() {
-    std::wstring fontName = GetSystemFontName();
+    m_fontName = GetSystemFontName();
 
-    m_titleFont  = new Gdiplus::Font(fontName.c_str(), 24, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
-    m_menuFont   = new Gdiplus::Font(fontName.c_str(), 16, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
-    m_buttonFont = new Gdiplus::Font(fontName.c_str(), 12, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
-    m_smallFont  = new Gdiplus::Font(fontName.c_str(), 10, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
-    m_hudFont    = new Gdiplus::Font(fontName.c_str(), 11, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
+    m_titleFont  = new Gdiplus::Font(m_fontName.c_str(), 24, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
+    m_menuFont   = new Gdiplus::Font(m_fontName.c_str(), 16, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
+    m_buttonFont = new Gdiplus::Font(m_fontName.c_str(), 12, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
+    m_smallFont  = new Gdiplus::Font(m_fontName.c_str(), 10, Gdiplus::FontStyleRegular, Gdiplus::UnitPoint);
+    m_hudFont    = new Gdiplus::Font(m_fontName.c_str(), 11, Gdiplus::FontStyleBold, Gdiplus::UnitPoint);
 
     float cx = Config::CANVAS_WIDTH * 0.5f;
 
@@ -139,12 +139,6 @@ void UIManager::Init() {
 void UIManager::LoadData(ScoreManager& score) {
     score.LoadAll(m_shopOwned, m_levelCleared, m_levelUnlocked);
     m_levelUnlocked[0] = true;  // 第1关永远解锁
-    // 重建 playerUpgrades 位标记（用于商店预览）
-    m_playerUpgrades = 0;
-    if (m_shopOwned[0]) m_playerUpgrades |= 1;
-    if (m_shopOwned[1]) m_playerUpgrades |= 2;
-    if (m_shopOwned[2]) m_playerUpgrades |= 4;
-    if (m_shopOwned[4]) m_playerUpgrades |= 8;
 }
 
 void UIManager::SaveData(ScoreManager& score) {
@@ -341,7 +335,7 @@ void UIManager::RenderHub(Gdiplus::Graphics& g, ScoreManager& score) {
     g.DrawString(L"雷 霆 战 机", -1, m_titleFont, Gdiplus::PointF(cx, 60), &fmt, &titleBrush);
 
     Gdiplus::SolidBrush subBrush(Gdiplus::Color(180, 140, 180, 220));
-    Gdiplus::Font subFont(L"Microsoft YaHei", 13);
+    Gdiplus::Font subFont(m_fontName.c_str(), 13);
     g.DrawString(L"THUNDER FIGHTER", -1, &subFont, Gdiplus::PointF(cx, 105), &fmt, &subBrush);
 
     // 分隔线
@@ -367,7 +361,7 @@ void UIManager::RenderHub(Gdiplus::Graphics& g, ScoreManager& score) {
     };
 
     // 战机名
-    Gdiplus::Font nameFont(L"Microsoft YaHei", 24, Gdiplus::FontStyleBold);
+    Gdiplus::Font nameFont(m_fontName.c_str(), 24, Gdiplus::FontStyleBold);
     Gdiplus::SolidBrush nameBrush(typeColors[m_selectedAircraft]);
     wchar_t buf[64];
     swprintf(buf, 64, L"%s  %s", names[m_selectedAircraft], types[m_selectedAircraft]);
@@ -388,7 +382,7 @@ void UIManager::RenderHub(Gdiplus::Graphics& g, ScoreManager& score) {
     for (auto& btn : m_hubButtons) btn.Render(g, *m_buttonFont);
 
     // 底部信息
-    Gdiplus::Font botFont(L"Microsoft YaHei", 15, Gdiplus::FontStyleBold);
+    Gdiplus::Font botFont(m_fontName.c_str(), 15, Gdiplus::FontStyleBold);
     swprintf(buf, 64, L"💰 金币：%d", score.GetGold());
     Gdiplus::SolidBrush goldBrush(Gdiplus::Color(255, 255, 220, 80));
     g.DrawString(buf, -1, &botFont, Gdiplus::PointF(cx, Config::CANVAS_HEIGHT - 40), &fmt, &goldBrush);
@@ -454,12 +448,12 @@ void UIManager::RenderShop(Gdiplus::Graphics& g, ScoreManager& score) {
     Gdiplus::SolidBrush titleBrush(Gdiplus::Color(255, 255, 220, 80));
     g.DrawString(L"商  店", -1, m_menuFont, Gdiplus::PointF(cx, 30), &fmt, &titleBrush);
 
-    wchar_t buf[64];
-    swprintf(buf, 64, L"当前金币：%d", score.GetGold());
+    wchar_t buf[128];
+    swprintf(buf, 128, L"当前金币：%d", score.GetGold());
     Gdiplus::SolidBrush goldBrush(Gdiplus::Color(200, 255, 220, 80));
     g.DrawString(buf, -1, m_smallFont, Gdiplus::PointF(cx, 62), &fmt, &goldBrush);
 
-    // 当前战机预览
+    // 当前战机预览（按已购道具直接展示生效效果）
     const wchar_t* names[3] = { L"闪电", L"飓风", L"烈焰" };
     Gdiplus::Color typeColors[3] = {
         Gdiplus::Color(255, 80, 160, 255),
@@ -467,12 +461,16 @@ void UIManager::RenderShop(Gdiplus::Graphics& g, ScoreManager& score) {
         Gdiplus::Color(255, 255, 60, 60)
     };
     Gdiplus::SolidBrush acBrush(typeColors[m_selectedAircraft]);
-    swprintf(buf, 64, L"当前战机：%s  (生命+%d  武器Lv%d  护盾+%d  加速%s)",
-        names[m_selectedAircraft],
-        (m_playerUpgrades & 1) ? 1 : 0,
-        (m_playerUpgrades & 2) ? 2 : 1,
-        (m_playerUpgrades & 4) ? 1 : 0,
-        (m_playerUpgrades & 8) ? L"✓" : L"✗");
+    int lifeB = m_shopOwned[0] ? 1 : 0;                 // 额外生命
+    int maxB  = m_shopOwned[5] ? 1 : 0;                 // 最大生命上限
+    int wpn   = m_shopOwned[1] ? 1 : 0;                 // 武器预升级
+    int shd   = (m_shopOwned[2] ? 1 : 0) + (m_shopOwned[7] ? 1 : 0); // 起始护盾
+    int bmb   = (m_shopOwned[3] ? 2 : 0) + (m_shopOwned[6] ? 1 : 0); // 起始炸弹
+    bool spd  = m_shopOwned[4];                         // 永久加速
+    swprintf(buf, 128,
+        L"战机：%s  生命+%d(上限+%d) 武器+%d 护盾+%d 炸弹+%d 加速%s",
+        names[m_selectedAircraft], lifeB, maxB, wpn, shd, bmb,
+        spd ? L"✓" : L"✗");
     g.DrawString(buf, -1, m_smallFont, Gdiplus::PointF(cx, 90), &fmt, &acBrush);
 
     Gdiplus::Pen sep(Gdiplus::Color(60, 255, 200, 60), 1.0f);
@@ -677,8 +675,4 @@ int UIManager::GetShopItemCost(int id) const {
 }
 void UIManager::BuyShopItem(int id, ScoreManager&) {
     m_shopOwned[id] = true;
-    if (id == 0) m_playerUpgrades |= 1;
-    if (id == 1) m_playerUpgrades |= 2;
-    if (id == 2) m_playerUpgrades |= 4;
-    if (id == 4) m_playerUpgrades |= 8;
 }

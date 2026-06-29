@@ -31,6 +31,8 @@ public:
     void UseBomb();
     void ActivateSpeedBoost();
     void UpgradeWeapon();
+    void ApplyPermanentSpeed();  // 商店：永久加速（提升基础速度）
+    void IncreaseMaxLives();     // 商店：最大生命+1（提升上限并补1生命）
 
     using Entity::Update;   // 避免隐藏基类虚函数
 
@@ -58,6 +60,7 @@ public:
 private:
     PlayerType m_type = PlayerType::BALANCED;
     int   m_lives       = Config::PLAYER_START_LIVES;
+    int   m_maxLives    = Config::PLAYER_MAX_LIVES;  // 生命上限（商店可提升）
     int   m_bombs       = 2;
     int   m_shields     = 0;
     int   m_weaponLevel = 0;

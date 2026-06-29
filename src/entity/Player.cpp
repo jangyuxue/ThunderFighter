@@ -10,6 +10,7 @@ Player::Player() {
 void Player::Init(PlayerType type) {
     m_type       = type;
     m_lives      = Config::PLAYER_START_LIVES;
+    m_maxLives   = Config::PLAYER_MAX_LIVES;
     m_bombs      = 2;
     m_shields    = 0;
     m_weaponLevel = 0;
@@ -119,7 +120,7 @@ void Player::TakeDamage(int amount) {
 }
 
 void Player::AddExtraLife() {
-    if (m_lives < Config::PLAYER_MAX_LIVES) ++m_lives;
+    if (m_lives < m_maxLives) ++m_lives;
 }
 
 void Player::AddShield() {
@@ -143,6 +144,18 @@ void Player::UpgradeWeapon() {
     if (m_weaponLevel < Config::MAX_WEAPON_LEVEL) {
         ++m_weaponLevel;
     }
+}
+
+void Player::ApplyPermanentSpeed() {
+    // 永久加速：直接提升基础速度（非临时计时器），整局生效
+    m_baseSpeed *= Config::SPEED_BOOST_MULTIPLIER;
+    m_speed = m_baseSpeed;
+}
+
+void Player::IncreaseMaxLives() {
+    // 最大生命+1：提升上限并补1生命
+    ++m_maxLives;
+    if (m_lives < m_maxLives) ++m_lives;
 }
 
 void Player::Render(Gdiplus::Graphics& g) {
