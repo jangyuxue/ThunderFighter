@@ -137,9 +137,9 @@ void UIManager::Init() {
 }
 
 void UIManager::LoadData(ScoreManager& score) {
-    score.LoadShopData(m_shopOwned, 8);
-    score.LoadProgress();
-    // 重建 playerUpgrades 位标记
+    score.LoadAll(m_shopOwned, m_levelCleared, m_levelUnlocked);
+    m_levelUnlocked[0] = true;  // 第1关永远解锁
+    // 重建 playerUpgrades 位标记（用于商店预览）
     m_playerUpgrades = 0;
     if (m_shopOwned[0]) m_playerUpgrades |= 1;
     if (m_shopOwned[1]) m_playerUpgrades |= 2;
@@ -148,8 +148,7 @@ void UIManager::LoadData(ScoreManager& score) {
 }
 
 void UIManager::SaveData(ScoreManager& score) {
-    score.SaveShopData(m_shopOwned, 8);
-    score.SaveProgress();
+    score.SaveAll(m_shopOwned, m_levelCleared, m_levelUnlocked);
 }
 
 void UIManager::OnLevelCleared(int level) {
@@ -279,7 +278,11 @@ void UIManager::UpdateShopButtons(int mx, int my, bool down, bool pressed, Score
         m_shopButtons[i].Update(mx, my, down, pressed);
         if (m_shopButtons[i].IsClicked() && !m_shopOwned[i]) {
             int cost = GetShopItemCost(i);
-            if (score.GetGold() >= cost) { score.SpendGold(cost); BuyShopItem(i, score); }
+            if (score.GetGold() >= cost) {
+                score.SpendGold(cost);
+                BuyShopItem(i, score);
+                SaveData(score);  // 立即持久化：金币+能力一起落盘，防止退出后丢失
+            }
         }
     }
 }

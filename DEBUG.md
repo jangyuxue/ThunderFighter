@@ -60,3 +60,12 @@
 - **修复**: Makefile CXXFLAGS 增加 `-Isrc -finput-charset=UTF-8 -fexec-charset=UTF-8`；SOURCES 补 `src/ui/Button.cpp`
 - **验证**: `mingw32-make` 构建成功生成 ThunderFighter.exe；无头 DrawString 测试确认中文渲染为像素（雷霆战机=2634px、商店=1249px、AAAA=1348px，与字符数成正比）
 - **教训**: "修了仍不生效"时，第一反应应是确认修复是否真正编译/部署生效，而非继续改源码。多次无效修复通常意味着构建链路本身断裂。
+
+## #10: 商店购买能力不持久化 + 关卡解锁丢失 + 金币每局被重发
+- **触发**: 花金币买能力后退出重进，金币扣了但能力没保存；通关后重启关卡又锁上
+- **根因(商店)**: `SaveShopData` 以 `fopen("rb+")` 追加 "SHOP" 块到 thunder.sav，但 `SaveProgress`（在 `SaveData` 中紧随其后、且独立调用）用 `fopen("wb")` **截断整个文件**，把 SHOP 块冲掉。git status 证实 thunder.sav 仅 12 字节(=TSAV+gold+totalGold)，SHOP 块从未落盘。`LoadShopData` 扫不到 "SHOP" 标记 → m_shopOwned 全 false → 能力丢失。金币因 SaveProgress 最后写入而存活。
+- **根因(关卡)**: `m_levelCleared`/`m_levelUnlocked` 从不写入/读取磁盘，`OnLevelCleared` 仅改内存，重启即丢。
+- **根因(金币重发)**: 构造函数每次加载都执行 `if(m_gold<1000) m_gold=1000`，注释写"开局至少1000"意图是首次赠送，但代码每局重发 → 花掉后重进金币被退回。
+- **修复**: 重设计为单一原子存档格式 `TSAV|version|gold|totalGold|shopOwned[8]|levelCleared[5]|levelUnlocked[5]`(34字节)，单一写入函数 `SaveAll`/`LoadAll`，删除旧的 SaveProgress/SaveShopData。购买后立即 `SaveData`。1000金币仅在无存档(首次启动)时赠送。旧档(12字节无version)自动迁移保留金币。
+- **验证**: 无头往返测试 6/6 通过（金币/商店能力/通关记录/解锁记录持久化、未购买保持false、文件34字节）。
+- **教训**: 多个写函数操作同一文件且语义不一致(追加 vs 截断)是数据丢失的温床。同一持久化目标应只有单一写入路径。

@@ -33,12 +33,15 @@ public:
     const HighScoreEntry* GetHighScores() const { return m_highScores; }
     int GetHighScoreCount() const { return 10; }
 
-    void SaveProgress();   // 保存金币等
-    void LoadProgress();   // 读取进度
-    void SaveShopData(const bool* owned, int count);   // 保存商店购买
-    void LoadShopData(bool* owned, int count);         // 读取商店购买
     void Reset();
     void ResetRun();
+
+    // 统一存档：单文件原子写入金币+累计金币+商店已购+关卡进度
+    // （修复旧版 SaveProgress 用 fopen("wb") 截断文件、把 SaveShopData 追加的
+    //   SHOP 块冲掉的致命缺陷 —— 旧版 thunder.sav 仅 12 字节，商店能力从未落盘）
+    void SaveAll(const bool* shopOwned, const bool* levelCleared,
+                 const bool* levelUnlocked);
+    void LoadAll(bool* shopOwned, bool* levelCleared, bool* levelUnlocked);
 
 private:
     unsigned int m_score = 0;
