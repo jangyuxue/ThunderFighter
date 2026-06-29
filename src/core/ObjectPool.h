@@ -17,7 +17,18 @@ public:
         // 从上次释放位置开始搜索，减少扫描开销
         for (size_t j = 0; j < MaxSize; ++j) {
             size_t i = (m_nextFree + j) % MaxSize;
-            if (!m_active[i]) {
+            // 槽位空闲，或槽位虽被占用但对象已逻辑停用(Deactivate 但未 Release)，
+            // 均可复用。
+            // 修复：原版仅检查 m_active[i]，而游戏中子弹/粒子出屏只调
+            // Entity::Deactivate() (置实体 m_active=false) 从不调 pool.Release()，
+            // 导致槽位标记永不归零、池逐渐占满、Acquire 最终返回 nullptr、
+            // 射击/特效渐进式静默失效。
+            if (!m_active[i] || !m_objects[i].IsActive()) {
+                if (m_active[i] && !m_objects[i].IsActive()) {
+                    // 复用"占用但已停用"的槽位：先逻辑释放，保持计数自洽
+                    m_active[i] = false;
+                    --m_activeCount;
+                }
                 m_active[i] = true;
                 ++m_activeCount;
                 m_nextFree = (i + 1) % MaxSize;
