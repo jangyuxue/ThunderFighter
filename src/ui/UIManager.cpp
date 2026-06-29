@@ -12,11 +12,14 @@ UIManager::~UIManager() {
 }
 
 void UIManager::Init() {
-    m_titleFont  = new Gdiplus::Font(L"Microsoft YaHei", 32, Gdiplus::FontStyleBold);
-    m_menuFont   = new Gdiplus::Font(L"Microsoft YaHei", 20, Gdiplus::FontStyleBold);
-    m_buttonFont = new Gdiplus::Font(L"Microsoft YaHei", 14, Gdiplus::FontStyleRegular);
-    m_smallFont  = new Gdiplus::Font(L"Microsoft YaHei", 11, Gdiplus::FontStyleRegular);
-    m_hudFont    = new Gdiplus::Font(L"Microsoft YaHei", 13, Gdiplus::FontStyleBold);
+    // 使用系统默认中文字体（避免乱码）
+    Gdiplus::FontFamily ff(L"");
+    Gdiplus::Font ffDefault(L"SimSun", 12);
+    m_titleFont  = new Gdiplus::Font(L"SimHei", 32, Gdiplus::FontStyleBold);
+    m_menuFont   = new Gdiplus::Font(L"SimHei", 20, Gdiplus::FontStyleBold);
+    m_buttonFont = new Gdiplus::Font(L"SimSun", 14, Gdiplus::FontStyleRegular);
+    m_smallFont  = new Gdiplus::Font(L"SimSun", 11, Gdiplus::FontStyleRegular);
+    m_hudFont    = new Gdiplus::Font(L"SimSun", 13, Gdiplus::FontStyleBold);
 
     float cx = Config::CANVAS_WIDTH * 0.5f;
 
@@ -108,9 +111,10 @@ void UIManager::Init() {
             Gdiplus::Color(200, 15, 20, 45), Gdiplus::Color(230, 35, 60, 100));
     }
 
-    // 返回按钮
-    m_backButton.Init(60, Config::CANVAS_HEIGHT - 40, 110, 38, L"← 返回",
-        Gdiplus::Color(160, 30, 30, 50), Gdiplus::Color(220, 50, 50, 100));
+    // 返回按钮（加大加粗，确保可见可点击）
+    m_backButton.Init(70, Config::CANVAS_HEIGHT - 46, 120, 42, L"返回",
+        Gdiplus::Color(200, 40, 40, 70), Gdiplus::Color(240, 80, 80, 140),
+        Gdiplus::Color(255, 255, 240, 220));
 
     m_levelUnlocked[0] = true;
 }
@@ -140,6 +144,11 @@ void UIManager::HandleInput(InputManager& input, Player& /*player*/, ScoreManage
     switch (m_state) {
     case GameState::HUB:
         UpdateHubButtons(mx, my, md, mp);
+        // 键盘切换战机
+        if (input.IsKeyPressed(VK_LEFT) || input.IsKeyPressed('A'))
+            m_selectedAircraft = (m_selectedAircraft + 2) % 3;
+        if (input.IsKeyPressed(VK_RIGHT) || input.IsKeyPressed('D'))
+            m_selectedAircraft = (m_selectedAircraft + 1) % 3;
         if (input.IsConfirmPressed()) {
             m_shouldStartGame = true;
         }
@@ -385,7 +394,7 @@ void UIManager::RenderLevelSelect(Gdiplus::Graphics& g, ScoreManager& /*score*/)
         m_levelButtons[i].Render(g, *m_buttonFont);
     }
 
-    m_backButton.Render(g, *m_smallFont);
+    m_backButton.Render(g, *m_buttonFont);
 }
 
 // ========== 商店 ==========
@@ -402,19 +411,39 @@ void UIManager::RenderShop(Gdiplus::Graphics& g, ScoreManager& score) {
     Gdiplus::SolidBrush goldBrush(Gdiplus::Color(200, 255, 220, 80));
     g.DrawString(buf, -1, m_smallFont, Gdiplus::PointF(cx, 62), &fmt, &goldBrush);
 
+    // 当前战机预览
+    const wchar_t* names[3] = { L"闪电", L"飓风", L"烈焰" };
+    Gdiplus::Color typeColors[3] = {
+        Gdiplus::Color(255, 80, 160, 255),
+        Gdiplus::Color(255, 60, 220, 80),
+        Gdiplus::Color(255, 255, 60, 60)
+    };
+    Gdiplus::SolidBrush acBrush(typeColors[m_selectedAircraft]);
+    swprintf(buf, 64, L"当前战机：%s  (生命+%d  武器Lv%d  护盾+%d  加速%s)",
+        names[m_selectedAircraft],
+        (m_playerUpgrades & 1) ? 1 : 0,
+        (m_playerUpgrades & 2) ? 2 : 1,
+        (m_playerUpgrades & 4) ? 1 : 0,
+        (m_playerUpgrades & 8) ? L"✓" : L"✗");
+    g.DrawString(buf, -1, m_smallFont, Gdiplus::PointF(cx, 90), &fmt, &acBrush);
+
     Gdiplus::Pen sep(Gdiplus::Color(60, 255, 200, 60), 1.0f);
-    g.DrawLine(&sep, Gdiplus::PointF(60, 80), Gdiplus::PointF(420, 80));
+    g.DrawLine(&sep, Gdiplus::PointF(40, 110), Gdiplus::PointF(440, 110));
 
     for (int i = 0; i < 8; ++i) {
         m_shopButtons[i].Render(g, *m_buttonFont);
         if (m_shopOwned[i]) {
             Gdiplus::SolidBrush ownedBrush(Gdiplus::Color(180, 80, 220, 80));
             g.DrawString(L"已拥有", -1, m_smallFont,
-                         Gdiplus::PointF(cx + 160, 140.0f + i * 46.0f), &fmt, &ownedBrush);
+                         Gdiplus::PointF(cx + 165, 140.0f + i * 46.0f + 2), &fmt, &ownedBrush);
         }
     }
 
-    m_backButton.Render(g, *m_smallFont);
+    Gdiplus::SolidBrush tipBrush(Gdiplus::Color(120, 140, 140, 140));
+    g.DrawString(L"购买的道具将在下一局游戏中生效", -1, m_smallFont,
+                 Gdiplus::PointF(cx, Config::CANVAS_HEIGHT - 25), &fmt, &tipBrush);
+
+    m_backButton.Render(g, *m_buttonFont);
 }
 
 // ========== 任务 ==========
@@ -445,7 +474,7 @@ void UIManager::RenderMissions(Gdiplus::Graphics& g, ScoreManager& /*score*/) {
                      Gdiplus::PointF(cx, 160.0f + i * 55.0f + 24), &fmt, &pBrush);
     }
 
-    m_backButton.Render(g, *m_smallFont);
+    m_backButton.Render(g, *m_buttonFont);
 }
 
 // ========== 成就 ==========
@@ -467,7 +496,7 @@ void UIManager::RenderAchievements(Gdiplus::Graphics& g) {
                      Gdiplus::PointF(cx + 180, 130.0f + i * 54.0f + 22), &fmt, &sb);
     }
 
-    m_backButton.Render(g, *m_smallFont);
+    m_backButton.Render(g, *m_buttonFont);
 }
 
 // ========== HUD ==========
@@ -589,7 +618,7 @@ void UIManager::RenderHighScore(Gdiplus::Graphics& g, ScoreManager& score) {
     Gdiplus::SolidBrush backBrush(Gdiplus::Color(160, 160, 160, 160));
     g.DrawString(L"按 ESC 返回大厅", -1, m_smallFont, Gdiplus::PointF(cx, 480), &fmt, &backBrush);
 
-    m_backButton.Render(g, *m_smallFont);
+    m_backButton.Render(g, *m_buttonFont);
 }
 
 // 商店逻辑

@@ -391,6 +391,7 @@ void Game::ProcessCollisions() {
 
                 if (enemy->IsDead() || enemy->IsDying()) {
                     m_scoreManager.AddScore(enemy->GetScoreValue());
+                    m_scoreManager.AddGold(enemy->GetScoreValue() / 10);  // 金币=分数/10
                     m_scoreManager.AddCombo();
 
                     if (enemy->GetKind() == EnemyKind::BOSS) {
@@ -554,6 +555,9 @@ void Game::Render(double /*interpolationAlpha*/) {
 // ============================================================
 void Game::Shutdown() {
     m_isRunning = false;
+
+    m_scoreManager.SaveProgress();
+    m_scoreManager.SaveHighScores();
 
     m_enemies.clear();
     m_powerUps.clear();

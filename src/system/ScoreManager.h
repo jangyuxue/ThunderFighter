@@ -33,8 +33,10 @@ public:
     const HighScoreEntry* GetHighScores() const { return m_highScores; }
     int GetHighScoreCount() const { return 10; }
 
+    void SaveProgress();   // 保存金币等
+    void LoadProgress();   // 读取进度
     void Reset();
-    void ResetRun();  // 单局重置（保留金币）
+    void ResetRun();
 
 private:
     unsigned int m_score = 0;

@@ -30,7 +30,7 @@ namespace Config {
     constexpr float SHOOT_COOLDOWN_SINGLE = 0.15f;
     constexpr float SHOOT_COOLDOWN_DOUBLE = 0.13f;
     constexpr float SHOOT_COOLDOWN_SPREAD = 0.20f;
-    constexpr float SHOOT_COOLDOWN_LASER  = 0.08f;
+    constexpr float SHOOT_COOLDOWN_LASER  = 0.18f;  // 降低激光频率，减少性能压力
     constexpr int   MAX_WEAPON_LEVEL = 4;
 
     // ---- 子弹 ----

@@ -5,6 +5,8 @@
 ScoreManager::ScoreManager() {
     memset(m_highScores, 0, sizeof(m_highScores));
     LoadHighScores();
+    LoadProgress();
+    if (m_gold < 1000) m_gold = 1000;  // 开局至少1000金币
 }
 
 void ScoreManager::AddScore(unsigned int points) {
@@ -64,5 +66,24 @@ void ScoreManager::Reset() {
 void ScoreManager::ResetRun() {
     m_score = 0;
     m_combo = 0;
-    // 保留金币
+}
+
+void ScoreManager::SaveProgress() {
+    FILE* f = fopen("thunder.sav", "wb");
+    if (!f) return;
+    fwrite("TSAV", 1, 4, f);
+    fwrite(&m_gold, sizeof(m_gold), 1, f);
+    fwrite(&m_totalGoldEarned, sizeof(m_totalGoldEarned), 1, f);
+    fclose(f);
+}
+
+void ScoreManager::LoadProgress() {
+    FILE* f = fopen("thunder.sav", "rb");
+    if (!f) return;
+    char magic[5] = {};
+    if (fread(magic, 1, 4, f) == 4 && strncmp(magic, "TSAV", 4) == 0) {
+        fread(&m_gold, sizeof(m_gold), 1, f);
+        fread(&m_totalGoldEarned, sizeof(m_totalGoldEarned), 1, f);
+    }
+    fclose(f);
 }

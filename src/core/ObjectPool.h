@@ -14,10 +14,13 @@ public:
 
     // 获取一个未使用的对象，返回 nullptr 表示池已满
     T* Acquire() {
-        for (size_t i = 0; i < MaxSize; ++i) {
+        // 从上次释放位置开始搜索，减少扫描开销
+        for (size_t j = 0; j < MaxSize; ++j) {
+            size_t i = (m_nextFree + j) % MaxSize;
             if (!m_active[i]) {
                 m_active[i] = true;
                 ++m_activeCount;
+                m_nextFree = (i + 1) % MaxSize;
                 return &m_objects[i];
             }
         }
@@ -30,6 +33,7 @@ public:
         if (index < MaxSize && m_active[index]) {
             m_active[index] = false;
             --m_activeCount;
+            m_nextFree = index;  // 下次从释放位置开始搜索
         }
     }
 
@@ -109,4 +113,5 @@ private:
     T      m_objects[MaxSize];
     bool   m_active[MaxSize] = {};
     size_t m_activeCount     = 0;
+    size_t m_nextFree        = 0;   // 搜索优化
 };
