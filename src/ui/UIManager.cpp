@@ -40,21 +40,20 @@ void UIManager::Init() {
 
     float cx = Config::CANVAS_WIDTH * 0.5f;
 
-    // HUB 按钮：2列 x 3行，正确居中
+    // HUB 按钮：2列 x 2行（已移除成就、排行榜）
     float btnW = 150.0f, btnH = 52.0f;
     float gapX = 24.0f, gapY = 16.0f;
     float leftX  = cx - btnW * 0.5f - gapX * 0.5f;
     float rightX = cx + btnW * 0.5f + gapX * 0.5f;
-    float baseY  = 380.0f;
+    float baseY  = 420.0f;
 
-    const wchar_t* hubLabels[6] = {
-        L"开始游戏", L"关卡选择", L"商  店", L"任  务", L"成  就", L"排行榜"
+    const wchar_t* hubLabels[4] = {
+        L"开始游戏", L"关卡选择", L"商  店", L"任  务"
     };
-    float hxs[6] = { leftX, rightX, leftX, rightX, leftX, rightX };
-    float hys[6] = { baseY, baseY, baseY + btnH + gapY, baseY + btnH + gapY,
-                     baseY + (btnH + gapY) * 2, baseY + (btnH + gapY) * 2 };
-    m_hubButtons.resize(6);
-    for (int i = 0; i < 6; ++i) {
+    float hxs[4] = { leftX, rightX, leftX, rightX };
+    float hys[4] = { baseY, baseY, baseY + btnH + gapY, baseY + btnH + gapY };
+    m_hubButtons.resize(4);
+    for (int i = 0; i < 4; ++i) {
         m_hubButtons[i].Init(hxs[i], hys[i], btnW, btnH, hubLabels[i],
             Gdiplus::Color(200, 15, 20, 45),
             Gdiplus::Color(230, 35, 60, 100),
@@ -79,14 +78,14 @@ void UIManager::Init() {
 
     // 商店按钮
     const wchar_t* shopLabels[8] = {
-        L"额外生命 +1      💰100",
-        L"武器预升级        💰200",
-        L"起始护盾          💰150",
-        L"额外炸弹 x2       💰50",
-        L"永久加速          💰300",
-        L"最大生命 +1       💰250",
-        L"起始炸弹 +1       💰80",
-        L"起始护盾 +1       💰120"
+        L"额外生命 +1      金币100",
+        L"武器预升级        金币200",
+        L"起始护盾          金币150",
+        L"额外炸弹 x2       金币50",
+        L"永久加速          金币300",
+        L"最大生命 +1       金币250",
+        L"起始炸弹 +1       金币80",
+        L"起始护盾 +1       金币120"
     };
     m_shopButtons.resize(8);
     for (int i = 0; i < 8; ++i) {
@@ -97,34 +96,16 @@ void UIManager::Init() {
 
     // 任务按钮
     const wchar_t* missionLabels[5] = {
-        L"击败 50 个敌人         💰100",
-        L"击败 1 个 Boss         💰300",
-        L"收集 10 个道具         💰50",
-        L"通关任意关卡            💰200",
-        L"使用 1 次炸弹           💰80"
+        L"击败 50 个敌人         金币100",
+        L"击败 1 个 Boss         金币300",
+        L"收集 10 个道具         金币50",
+        L"通关任意关卡            金币200",
+        L"使用 1 次炸弹           金币80"
     };
     m_missionButtons.resize(5);
     for (int i = 0; i < 5; ++i) {
         float my = 160.0f + i * 55.0f;
         m_missionButtons[i].Init(cx, my, 340, 42, missionLabels[i],
-            Gdiplus::Color(200, 15, 20, 45), Gdiplus::Color(230, 35, 60, 100));
-    }
-
-    // 成就按钮
-    const wchar_t* achievementLabels[8] = {
-        L"首战告捷 — 首次通关任意关卡",
-        L"弹幕大师 — 无伤击败 Boss",
-        L"敛财高手 — 累计获得 10000 金币",
-        L"武器大师 — 武器升至满级",
-        L"清道夫   — 单局击败 100 个敌人",
-        L"不死鸟   — 一命通关任意关卡",
-        L"收藏家   — 获得全部道具类型",
-        L"五星上将 — 五关全部通关"
-    };
-    m_achievementButtons.resize(8);
-    for (int i = 0; i < 8; ++i) {
-        float ay = 130.0f + i * 54.0f;
-        m_achievementButtons[i].Init(cx, ay, 380, 42, achievementLabels[i],
             Gdiplus::Color(200, 15, 20, 45), Gdiplus::Color(230, 35, 60, 100));
     }
 
@@ -206,13 +187,6 @@ void UIManager::HandleInput(InputManager& input, Player& /*player*/, ScoreManage
     case GameState::MISSIONS:
         UpdateMissionsButtons(mx, my, md, mp, score);
         break;
-    case GameState::ACHIEVEMENTS:
-        UpdateAchievementsButtons(mx, my, md, mp);
-        break;
-    case GameState::HIGH_SCORE:
-        m_backButton.Update(mx, my, md, mp);  // 排行榜返回按钮
-        if (m_backButton.IsClicked()) SetState(GameState::HUB);
-        break;
     case GameState::GAME_OVER:
         if (input.IsConfirmPressed() || mp) {
             m_shouldStartGame = false;
@@ -230,10 +204,6 @@ void UIManager::Update(float dt) {
         m_transitionAlpha -= dt * 0.5f;
         if (m_transitionAlpha < 0.0f) m_transitionAlpha = 0.0f;
     }
-    if (m_achievementNotifyTimer > 0.0f) {
-        m_achievementNotifyTimer -= dt;
-        if (m_achievementNotifyTimer < 0.0f) m_achievementNotifyId = -1;
-    }
 }
 
 // 按钮更新
@@ -247,8 +217,6 @@ void UIManager::UpdateHubButtons(int mx, int my, bool down, bool pressed) {
     if (m_hubButtons[1].IsClicked()) SetState(GameState::LEVEL_SELECT);
     if (m_hubButtons[2].IsClicked()) SetState(GameState::SHOP);
     if (m_hubButtons[3].IsClicked()) SetState(GameState::MISSIONS);
-    if (m_hubButtons[4].IsClicked()) SetState(GameState::ACHIEVEMENTS);
-    if (m_hubButtons[5].IsClicked()) SetState(GameState::HIGH_SCORE);
 }
 
 void UIManager::UpdateLevelSelectButtons(int mx, int my, bool down, bool pressed) {
@@ -296,12 +264,6 @@ void UIManager::UpdateMissionsButtons(int mx, int my, bool down, bool pressed, S
     }
 }
 
-void UIManager::UpdateAchievementsButtons(int mx, int my, bool down, bool pressed) {
-    m_backButton.Update(mx, my, down, pressed);
-    if (m_backButton.IsClicked()) { SetState(GameState::HUB); return; }
-    // 成就仅展示，不交互
-}
-
 // 渲染调度
 void UIManager::Render(Gdiplus::Graphics& g, Player& player,
                        ScoreManager& score, const LevelManager& level) {
@@ -312,10 +274,8 @@ void UIManager::Render(Gdiplus::Graphics& g, Player& player,
     case GameState::LEVEL_SELECT: RenderLevelSelect(g, score); break;
     case GameState::SHOP:         RenderShop(g, score); break;
     case GameState::MISSIONS:     RenderMissions(g, score); break;
-    case GameState::ACHIEVEMENTS: RenderAchievements(g); break;
     case GameState::LEVEL_TRANSITION: RenderLevelTransition(g, level); break;
     case GameState::GAME_OVER:    RenderGameOver(g, player, score); break;
-    case GameState::HIGH_SCORE:   RenderHighScore(g, score); break;
     }
 }
 
@@ -347,7 +307,7 @@ void UIManager::RenderHub(Gdiplus::Graphics& g, ScoreManager& score) {
     g.DrawString(L"— 选择战机 —", -1, m_smallFont, Gdiplus::PointF(cx, 155), &fmt, &selTitle);
 
     // 当前战机名 + 型号
-    const wchar_t* names[3] = { L"⚡ 闪电", L"🌪 飓风", L"🔥 烈焰" };
+    const wchar_t* names[3] = { L"闪电", L"飓风", L"烈焰" };
     const wchar_t* types[3] = { L"速度型", L"均衡型", L"力量型" };
     const wchar_t* descs[3] = {
         L"高机动 · 单发 · 2生命 · 蓝色涂装",
@@ -383,7 +343,7 @@ void UIManager::RenderHub(Gdiplus::Graphics& g, ScoreManager& score) {
 
     // 底部信息
     Gdiplus::Font botFont(m_fontName.c_str(), 15, Gdiplus::FontStyleBold);
-    swprintf(buf, 64, L"💰 金币：%d", score.GetGold());
+    swprintf(buf, 64, L"金币：%d", score.GetGold());
     Gdiplus::SolidBrush goldBrush(Gdiplus::Color(255, 255, 220, 80));
     g.DrawString(buf, -1, &botFont, Gdiplus::PointF(cx, Config::CANVAS_HEIGHT - 40), &fmt, &goldBrush);
 
@@ -470,7 +430,7 @@ void UIManager::RenderShop(Gdiplus::Graphics& g, ScoreManager& score) {
     swprintf(buf, 128,
         L"战机：%s  生命+%d(上限+%d) 武器+%d 护盾+%d 炸弹+%d 加速%s",
         names[m_selectedAircraft], lifeB, maxB, wpn, shd, bmb,
-        spd ? L"✓" : L"✗");
+        spd ? L"是" : L"否");
     g.DrawString(buf, -1, m_smallFont, Gdiplus::PointF(cx, 90), &fmt, &acBrush);
 
     Gdiplus::Pen sep(Gdiplus::Color(60, 255, 200, 60), 1.0f);
@@ -508,7 +468,7 @@ void UIManager::RenderMissions(Gdiplus::Graphics& g, ScoreManager& /*score*/) {
         int prog = m_missionProgress[i];
         int target = GetMissionTarget(i);
         if (m_missionClaimed[i]) {
-            swprintf(buf, 64, L"已完成 ✓");
+            swprintf(buf, 64, L"已完成");
         } else {
             swprintf(buf, 64, L"进度：%d / %d", prog, target);
         }
@@ -518,28 +478,6 @@ void UIManager::RenderMissions(Gdiplus::Graphics& g, ScoreManager& /*score*/) {
         Gdiplus::SolidBrush pBrush(pc);
         g.DrawString(buf, -1, m_smallFont,
                      Gdiplus::PointF(cx, 160.0f + i * 55.0f + 24), &fmt, &pBrush);
-    }
-
-    m_backButton.Render(g, *m_buttonFont);
-}
-
-// ========== 成就 ==========
-void UIManager::RenderAchievements(Gdiplus::Graphics& g) {
-    float cx = Config::CANVAS_WIDTH * 0.5f;
-    Gdiplus::StringFormat fmt;
-    fmt.SetAlignment(Gdiplus::StringAlignmentCenter);
-
-    Gdiplus::SolidBrush titleBrush(Gdiplus::Color(255, 255, 220, 80));
-    g.DrawString(L"成  就", -1, m_menuFont, Gdiplus::PointF(cx, 30), &fmt, &titleBrush);
-
-    for (int i = 0; i < 8; ++i) {
-        m_achievementButtons[i].Render(g, *m_buttonFont);
-
-        Gdiplus::SolidBrush sb(m_achievementUnlocked[i]
-            ? Gdiplus::Color(200, 255, 220, 80) : Gdiplus::Color(80, 80, 80, 80));
-        g.DrawString(m_achievementUnlocked[i] ? L"已解锁 🏅" : L"未解锁 🔒",
-                     -1, m_smallFont,
-                     Gdiplus::PointF(cx + 180, 130.0f + i * 54.0f + 22), &fmt, &sb);
     }
 
     m_backButton.Render(g, *m_buttonFont);
@@ -636,35 +574,6 @@ void UIManager::RenderGameOver(Gdiplus::Graphics& g, Player& /*player*/, ScoreMa
 
     Gdiplus::SolidBrush hintBrush(Gdiplus::Color(160, 160, 160, 160));
     g.DrawString(L"点击或按 Enter 返回大厅", -1, m_smallFont, Gdiplus::PointF(cx, 340), &fmt, &hintBrush);
-}
-
-void UIManager::RenderHighScore(Gdiplus::Graphics& g, ScoreManager& score) {
-    Gdiplus::SolidBrush bg(Gdiplus::Color(210, 5, 5, 20));
-    g.FillRectangle(&bg, 0.0f, 0.0f,
-        static_cast<float>(Config::CANVAS_WIDTH), static_cast<float>(Config::CANVAS_HEIGHT));
-    Gdiplus::StringFormat fmt;
-    fmt.SetAlignment(Gdiplus::StringAlignmentCenter);
-    float cx = Config::CANVAS_WIDTH * 0.5f;
-
-    Gdiplus::SolidBrush tb(Gdiplus::Color(255, 255, 220, 80));
-    g.DrawString(L"排 行 榜", -1, m_menuFont, Gdiplus::PointF(cx, 30), &fmt, &tb);
-
-    wchar_t buf[128];
-    for (int i = 0; i < 10; ++i) {
-        float y = 90.0f + i * 36.0f;
-        const auto& e = score.GetHighScores()[i];
-        if (e.score > 0)
-            swprintf(buf, 128, L"%2d.  %hs  —  %u 分", i + 1, e.name, e.score);
-        else
-            swprintf(buf, 128, L"%2d.  ———", i + 1);
-        Gdiplus::SolidBrush eb(Gdiplus::Color(180, 180, 180, 180));
-        g.DrawString(buf, -1, m_smallFont, Gdiplus::PointF(cx, y), &fmt, &eb);
-    }
-
-    Gdiplus::SolidBrush backBrush(Gdiplus::Color(160, 160, 160, 160));
-    g.DrawString(L"按 ESC 返回大厅", -1, m_smallFont, Gdiplus::PointF(cx, 480), &fmt, &backBrush);
-
-    m_backButton.Render(g, *m_buttonFont);
 }
 
 // 商店逻辑

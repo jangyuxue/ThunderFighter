@@ -1,12 +1,5 @@
 #pragma once
 
-#include <string>
-
-struct HighScoreEntry {
-    unsigned int score;
-    char name[32];
-};
-
 class ScoreManager {
 public:
     ScoreManager();
@@ -24,15 +17,6 @@ public:
     int  GetGold() const { return m_gold; }
     int  GetTotalGoldEarned() const { return m_totalGoldEarned; }
 
-    // 最高分
-    void LoadHighScores();
-    void SaveHighScores();
-    bool IsHighScore() const;
-    void InsertHighScore(const char* name);
-
-    const HighScoreEntry* GetHighScores() const { return m_highScores; }
-    int GetHighScoreCount() const { return 10; }
-
     void Reset();
     void ResetRun();
 
@@ -48,5 +32,4 @@ private:
     int          m_combo = 0;
     int          m_gold  = 0;
     int          m_totalGoldEarned = 0;
-    HighScoreEntry m_highScores[10] = {};
 };

@@ -89,3 +89,19 @@
 - **修复**: ObjectPool::Acquire 可复用条件由 `!m_active[i]` 改为 `!m_active[i] || !m_objects[i].IsActive()`。复用"占用但已停用"的槽位时先逻辑释放(保持 m_activeCount 自洽)。无需改任何调用方。
 - **验证**: 失败测试复现 bug(退出码1)→修复后 6/6 通过(池满可复用、持续射击10000次无泄漏、活跃对象不被复用、全活跃池满返回nullptr、ReleaseAll归零); clean重编构建成功; exe启动冒烟测试存活无崩溃。
 - **教训**: 对象池若用独立于实体生命周期的"槽位标记"管理复用，必须保证实体停用时同步释放槽位(或让 Acquire 直接依据实体活跃状态判定)。两套状态脱钩必然导致槽位泄漏。
+
+## #13: 战机名行 emoji 乱码（仅 emoji 显示异常）
+- **触发**: 用户报告战机选择处乱码；经确认中文正常，仅 emoji(⚡🌪🔥) 显示异常
+- **根因**: 辅助平面 emoji(U+1F000+，需 surrogate pair) 依赖 emoji 字体(Segoe UI Emoji)渲染。部分 Windows 系统/精简字体环境缺失该字体 → 显示为乱码/豆腐块。wchar_t 字面量本身正确(D83C DF2A 等 surrogate pair 完整)，g++ 解码正确，GDI+ 加载正常，问题在字形缺失。本机有 fallback 故测试能渲染，用户机缺失。
+- **修复**: 移除所有辅助平面 emoji（战机名⚡🌪🔥、商店/任务💰、商店预览✓✗、任务✓），改用纯中文。保留 BMP 几何符号(◀▶★)——所有字体均支持。成就界面🏅🔒随成就系统删除一并移除。
+- **验证**: 无头渲染测试确认去emoji后纯中文战机名3/3正常渲染(像素数3039/3121/3388)；构建成功；启动冒烟存活无崩溃。
+- **教训**: emoji 跨系统显示不一致，游戏 UI 应避免依赖 emoji 字体；用纯文字或 BMP 符号更可靠。
+
+## #14: 删除排行榜与成就系统
+- **触发**: 用户要求删除排行榜、成就功能
+- **变更**:
+  - 排行榜: 移除 HIGH_SCORE 状态、RenderHighScore、ScoreManager 的 HighScoreEntry/LoadHighScores/SaveHighScores/IsHighScore/InsertHighScore/GetHighScores/m_highScores、Game.cpp 的 SaveHighScores 调用
+  - 成就: 移除 ACHIEVEMENTS 状态、RenderAchievements、UpdateAchievementsButtons、m_achievementButtons、m_achievementUnlocked、成就通知计时器
+  - HUB 布局: 6按钮(2列3行) → 4按钮(2列2行): 开始游戏/关卡选择/商店/任务
+- **注意**: 排行榜从未实际可用(InsertHighScore 从无调用)，成就从未解锁(无触发代码)——删除的是未完成的功能骨架，无功能损失
+- **验证**: 构建成功(exe 258KB→254KB)；零残留引用(已 grep 确认)；启动冒烟存活无崩溃

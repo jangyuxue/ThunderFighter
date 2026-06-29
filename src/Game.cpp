@@ -82,9 +82,9 @@ void Game::FixedUpdate(double dt) {
 
     GameState state = m_uiManager.GetState();
 
-    if (state == GameState::HUB || state == GameState::HIGH_SCORE
+    if (state == GameState::HUB
         || state == GameState::LEVEL_SELECT || state == GameState::SHOP
-        || state == GameState::MISSIONS || state == GameState::ACHIEVEMENTS) {
+        || state == GameState::MISSIONS) {
         m_uiManager.HandleInput(m_input, m_player, m_scoreManager);
 
         // HUB/关卡选择 → 开始游戏
@@ -570,7 +570,6 @@ void Game::Shutdown() {
     m_isRunning = false;
 
     m_uiManager.SaveData(m_scoreManager);
-    m_scoreManager.SaveHighScores();
 
     m_enemies.clear();
     m_powerUps.clear();

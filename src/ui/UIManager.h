@@ -21,10 +21,8 @@ enum class GameState {
     LEVEL_SELECT,     // 关卡选择
     SHOP,             // 商店
     MISSIONS,         // 任务
-    ACHIEVEMENTS,     // 成就
     LEVEL_TRANSITION,
-    GAME_OVER,
-    HIGH_SCORE
+    GAME_OVER
 };
 
 class UIManager {
@@ -66,17 +64,14 @@ private:
     void RenderLevelSelect(Gdiplus::Graphics& g, ScoreManager& score);
     void RenderShop(Gdiplus::Graphics& g, ScoreManager& score);
     void RenderMissions(Gdiplus::Graphics& g, ScoreManager& score);
-    void RenderAchievements(Gdiplus::Graphics& g);
     void RenderLevelTransition(Gdiplus::Graphics& g, const LevelManager& level);
     void RenderGameOver(Gdiplus::Graphics& g, Player& player, ScoreManager& score);
-    void RenderHighScore(Gdiplus::Graphics& g, ScoreManager& score);
 
     // 按钮管理
     void UpdateHubButtons(int mx, int my, bool down, bool pressed);
     void UpdateLevelSelectButtons(int mx, int my, bool down, bool pressed);
     void UpdateShopButtons(int mx, int my, bool down, bool pressed, ScoreManager& score);
     void UpdateMissionsButtons(int mx, int my, bool down, bool pressed, ScoreManager& score);
-    void UpdateAchievementsButtons(int mx, int my, bool down, bool pressed);
 
     GameState m_state = GameState::HUB;
     GameState m_prevState = GameState::HUB;
@@ -91,12 +86,11 @@ private:
     float m_backTimer     = 0.0f;   // ESC 返回冷却
 
     // HUB 按钮
-    std::vector<Button> m_hubButtons;       // 6个主按钮
+    std::vector<Button> m_hubButtons;       // 4个主按钮
     Button m_aircraftLeft, m_aircraftRight;  // 战机选择箭头
     std::vector<Button> m_levelButtons;      // 关卡选择按钮
     std::vector<Button> m_shopButtons;       // 商店按钮
     std::vector<Button> m_missionButtons;    // 任务按钮
-    std::vector<Button> m_achievementButtons;// 成就按钮
     Button m_backButton;
 
     // 商店已购标记
@@ -105,11 +99,6 @@ private:
     // 任务进度
     int  m_missionProgress[8] = {};
     bool m_missionClaimed[8] = {};
-
-    // 成就状态
-    bool m_achievementUnlocked[12] = {};
-    float m_achievementNotifyTimer = 0.0f;
-    int   m_achievementNotifyId = -1;
 
     // 关卡解锁
     bool m_levelUnlocked[5] = { true, false, false, false, false };
