@@ -3,7 +3,10 @@
 # Target: Windows native executable
 
 CXX       := g++
-CXXFLAGS  := -std=c++17 -Wall -Wextra -O2
+# -Isrc        : 头文件按 "core/X.h" 形式引用，需以 src 为包含根
+# -finput-charset=UTF-8 -fexec-charset=UTF-8 : 源码为 UTF-8，
+#   显式声明字符集，避免在不同 locale/工具链下被误判为 GBK 导致中文乱码
+CXXFLAGS  := -std=c++17 -Wall -Wextra -O2 -Isrc -finput-charset=UTF-8 -fexec-charset=UTF-8
 LDFLAGS   := -lgdiplus -lgdi32 -luser32 -lkernel32 -mwindows
 
 SRCDIR    := src
@@ -29,6 +32,7 @@ SOURCES   := src/main.cpp \
              src/system/PowerUpSystem.cpp \
              src/system/ParticleSystem.cpp \
              src/system/ScoreManager.cpp \
+             src/ui/Button.cpp \
              src/ui/UIManager.cpp
 
 OBJECTS   := $(patsubst src/%.cpp, obj/%.o, $(SOURCES))

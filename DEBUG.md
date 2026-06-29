@@ -46,3 +46,17 @@
 - **触发**: `#include "core\ResourceManager.h"` 的反斜杠导致 include 失败
 - **修复**: 改为正斜杠 `"core/ResourceManager.h"`
 - **验证**: 编译通过
+
+## #9: 中文乱码 — 真正根因（前3次修复均未生效）
+- **触发**: 用户报告界面中文持续乱码，已修3次（MakeFont 多字体尝试、SystemParametersInfoW 系统字体）仍未解决
+- **根因**: Makefile 缺失 `-Isrc`（头文件按 `core/X.h` 引用无法解析）且 SOURCES 漏列 `src/ui/Button.cpp`，导致 `mingw32-make` 从未成功构建。用户一直在运行**旧的乱码 exe**，所有"字体修复"都没编译进可执行文件，故乱码"修了3次仍存在"。
+  - 排查过程（已用测试逐项排除，非猜测）:
+    1. 源码编码: 全部源文件为 UTF-8 无 BOM（Python 严格解码验证）
+    2. 字符串字面量: g++ 14.2.0 默认即按 UTF-8 解码，wchar_t 值正确（`雷霆战机`=96F7 9706 6218 673A），与 locale/`-finput-charset` 标志无关 → 编码非根因
+    3. GDI+ 初始化: Renderer::Initialize 先于 UIManager::Init 调用 GdiplusStartup，顺序正确
+    4. 字体加载: SystemParametersInfoW 返回 `Microsoft YaHei UI`，Font 创建 status=Ok、family 正确、IsAvailable=1
+    5. 渲染管线: 双缓冲 GDI+ Graphics + AntiAlias 文本提示，正确
+    6. 构建: Makefile 编不过（缺 -Isrc + 漏 Button.cpp）→ 真正阻断点
+- **修复**: Makefile CXXFLAGS 增加 `-Isrc -finput-charset=UTF-8 -fexec-charset=UTF-8`；SOURCES 补 `src/ui/Button.cpp`
+- **验证**: `mingw32-make` 构建成功生成 ThunderFighter.exe；无头 DrawString 测试确认中文渲染为像素（雷霆战机=2634px、商店=1249px、AAAA=1348px，与字符数成正比）
+- **教训**: "修了仍不生效"时，第一反应应是确认修复是否真正编译/部署生效，而非继续改源码。多次无效修复通常意味着构建链路本身断裂。
