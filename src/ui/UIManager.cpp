@@ -37,21 +37,19 @@ void UIManager::Init() {
 
     float cx = Config::CANVAS_WIDTH * 0.5f;
 
-    // HUB 按钮：2列 x 2行（已移除成就、排行榜、任务）
-    float btnW = 150.0f, btnH = 52.0f;
-    float gapX = 24.0f, gapY = 16.0f;
-    float leftX  = cx - btnW * 0.5f - gapX * 0.5f;
-    float rightX = cx + btnW * 0.5f + gapX * 0.5f;
-    float baseY  = 420.0f;
+    // HUB 按钮：3个按钮垂直居中排列（已移除成就、排行榜、任务）
+    float btnW = 180.0f, btnH = 54.0f;
+    float gapY = 20.0f;
+    float baseY  = 430.0f;
 
     const wchar_t* hubLabels[3] = {
         L"开始游戏", L"关卡选择", L"商  店"
     };
-    float hxs[3] = { leftX, rightX, cx - btnW * 0.5f };
-    float hys[3] = { baseY, baseY, baseY + btnH + gapY };
+    float hx = cx - btnW * 0.5f;
     m_hubButtons.resize(3);
     for (int i = 0; i < 3; ++i) {
-        m_hubButtons[i].Init(hxs[i], hys[i], btnW, btnH, hubLabels[i],
+        float hy = baseY + i * (btnH + gapY);
+        m_hubButtons[i].Init(hx, hy, btnW, btnH, hubLabels[i],
             Gdiplus::Color(200, 15, 20, 45),
             Gdiplus::Color(230, 35, 60, 100),
             Gdiplus::Color(255, 255, 240, 200));
@@ -300,7 +298,7 @@ void UIManager::RenderHub(Gdiplus::Graphics& g, ScoreManager& score) {
     // 分隔线
     g.DrawLine(&line2, Gdiplus::PointF(60, 265), Gdiplus::PointF(420, 265));
 
-    // 6个功能按钮
+    // 3个功能按钮（垂直居中排列）
     for (auto& btn : m_hubButtons) btn.Render(g, *m_buttonFont);
 
     // 底部信息
