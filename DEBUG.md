@@ -122,3 +122,15 @@
   3. 新构建的 exe 中 UTF-16LE 字符串搜索确认包含 "闪电/飓风/烈焰/速度型/均衡型/力量型/地球轨道/小行星带"。
   4. `mingw32-make clean && mingw32-make` 构建成功；启动冒烟测试进程存活无崩溃。
 - **教训**: Windows/msvcrt 宽字符格式化是陷阱：`swprintf`/`wprintf` 中 `%s` 通常指 `char*`，`%ls` 才是 `wchar_t*`。跨平台代码若曾在 glibc 下 `%s` 工作，移植到 MinGW-w64 后必须改为 `%ls`。所有宽字符串格式化都应使用 `%ls` 并逐一审核。
+
+## #16: 删除任务系统
+- **触发**: 用户要求删除任务（MISSIONS）功能
+- **变更**:
+  - 移除 GameState::MISSIONS 状态
+  - 移除 `RenderMissions`、`UpdateMissionsButtons` 函数
+  - 移除 `m_missionButtons`、`m_missionProgress[8]`、`m_missionClaimed[8]` 成员
+  - 移除 `GetMissionTarget`、`GetMissionReward` 静态辅助函数
+  - HUB 主界面按钮从 4 个变为 3 个：开始游戏 / 关卡选择 / 商店（2+1 布局：第一行左右各一，第二行中间一个）
+  - Game.cpp 大厅状态检查中移除 MISSIONS
+- **注意**: 任务系统之前从未真正可完成（`m_missionProgress` 没有任何地方递增），删除的是未完成的功能骨架，无功能损失
+- **验证**: grep 确认零残留引用；`mingw32-make clean && mingw32-make` 构建成功；启动冒烟测试进程存活无崩溃

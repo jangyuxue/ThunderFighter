@@ -2,9 +2,6 @@
 #include "config/GameConfig.h"
 #include <cstdio>
 
-static int GetMissionTarget(int i) { int t[5] = { 50, 1, 10, 1, 1 }; return t[i]; }
-static int GetMissionReward(int i) { int r[5] = { 100, 300, 50, 200, 80 }; return r[i]; }
-
 UIManager::UIManager() {}
 UIManager::~UIManager() {
     delete m_titleFont; delete m_menuFont;
@@ -40,20 +37,20 @@ void UIManager::Init() {
 
     float cx = Config::CANVAS_WIDTH * 0.5f;
 
-    // HUB 按钮：2列 x 2行（已移除成就、排行榜）
+    // HUB 按钮：2列 x 2行（已移除成就、排行榜、任务）
     float btnW = 150.0f, btnH = 52.0f;
     float gapX = 24.0f, gapY = 16.0f;
     float leftX  = cx - btnW * 0.5f - gapX * 0.5f;
     float rightX = cx + btnW * 0.5f + gapX * 0.5f;
     float baseY  = 420.0f;
 
-    const wchar_t* hubLabels[4] = {
-        L"开始游戏", L"关卡选择", L"商  店", L"任  务"
+    const wchar_t* hubLabels[3] = {
+        L"开始游戏", L"关卡选择", L"商  店"
     };
-    float hxs[4] = { leftX, rightX, leftX, rightX };
-    float hys[4] = { baseY, baseY, baseY + btnH + gapY, baseY + btnH + gapY };
-    m_hubButtons.resize(4);
-    for (int i = 0; i < 4; ++i) {
+    float hxs[3] = { leftX, rightX, cx - btnW * 0.5f };
+    float hys[3] = { baseY, baseY, baseY + btnH + gapY };
+    m_hubButtons.resize(3);
+    for (int i = 0; i < 3; ++i) {
         m_hubButtons[i].Init(hxs[i], hys[i], btnW, btnH, hubLabels[i],
             Gdiplus::Color(200, 15, 20, 45),
             Gdiplus::Color(230, 35, 60, 100),
@@ -91,21 +88,6 @@ void UIManager::Init() {
     for (int i = 0; i < 8; ++i) {
         float sy = 140.0f + i * 46.0f;
         m_shopButtons[i].Init(cx, sy, 340, 38, shopLabels[i],
-            Gdiplus::Color(200, 15, 20, 45), Gdiplus::Color(230, 35, 60, 100));
-    }
-
-    // 任务按钮
-    const wchar_t* missionLabels[5] = {
-        L"击败 50 个敌人         金币100",
-        L"击败 1 个 Boss         金币300",
-        L"收集 10 个道具         金币50",
-        L"通关任意关卡            金币200",
-        L"使用 1 次炸弹           金币80"
-    };
-    m_missionButtons.resize(5);
-    for (int i = 0; i < 5; ++i) {
-        float my = 160.0f + i * 55.0f;
-        m_missionButtons[i].Init(cx, my, 340, 42, missionLabels[i],
             Gdiplus::Color(200, 15, 20, 45), Gdiplus::Color(230, 35, 60, 100));
     }
 
@@ -184,9 +166,6 @@ void UIManager::HandleInput(InputManager& input, Player& /*player*/, ScoreManage
     case GameState::SHOP:
         UpdateShopButtons(mx, my, md, mp, score);
         break;
-    case GameState::MISSIONS:
-        UpdateMissionsButtons(mx, my, md, mp, score);
-        break;
     case GameState::GAME_OVER:
         if (input.IsConfirmPressed() || mp) {
             m_shouldStartGame = false;
@@ -216,7 +195,6 @@ void UIManager::UpdateHubButtons(int mx, int my, bool down, bool pressed) {
     if (m_hubButtons[0].IsClicked()) m_shouldStartGame = true;
     if (m_hubButtons[1].IsClicked()) SetState(GameState::LEVEL_SELECT);
     if (m_hubButtons[2].IsClicked()) SetState(GameState::SHOP);
-    if (m_hubButtons[3].IsClicked()) SetState(GameState::MISSIONS);
 }
 
 void UIManager::UpdateLevelSelectButtons(int mx, int my, bool down, bool pressed) {
@@ -249,21 +227,6 @@ void UIManager::UpdateShopButtons(int mx, int my, bool down, bool pressed, Score
     }
 }
 
-void UIManager::UpdateMissionsButtons(int mx, int my, bool down, bool pressed, ScoreManager& score) {
-    m_backButton.Update(mx, my, down, pressed);
-    if (m_backButton.IsClicked()) { SetState(GameState::HUB); return; }
-    for (int i = 0; i < 5; ++i) {
-        bool done = m_missionClaimed[i];
-        bool complete = m_missionProgress[i] >= GetMissionTarget(i);
-        m_missionButtons[i].SetOwned(done);
-        m_missionButtons[i].Update(mx, my, down, pressed);
-        if (m_missionButtons[i].IsClicked() && complete && !done) {
-            m_missionClaimed[i] = true;
-            score.AddGold(GetMissionReward(i));
-        }
-    }
-}
-
 // 渲染调度
 void UIManager::Render(Gdiplus::Graphics& g, Player& player,
                        ScoreManager& score, const LevelManager& level) {
@@ -273,7 +236,6 @@ void UIManager::Render(Gdiplus::Graphics& g, Player& player,
     case GameState::PAUSED:       RenderHUD(g, player, score, level); RenderPaused(g); break;
     case GameState::LEVEL_SELECT: RenderLevelSelect(g, score); break;
     case GameState::SHOP:         RenderShop(g, score); break;
-    case GameState::MISSIONS:     RenderMissions(g, score); break;
     case GameState::LEVEL_TRANSITION: RenderLevelTransition(g, level); break;
     case GameState::GAME_OVER:    RenderGameOver(g, player, score); break;
     }
@@ -448,37 +410,6 @@ void UIManager::RenderShop(Gdiplus::Graphics& g, ScoreManager& score) {
     Gdiplus::SolidBrush tipBrush(Gdiplus::Color(120, 140, 140, 140));
     g.DrawString(L"购买的道具将在下一局游戏中生效", -1, m_smallFont,
                  Gdiplus::PointF(cx, Config::CANVAS_HEIGHT - 25), &fmt, &tipBrush);
-
-    m_backButton.Render(g, *m_buttonFont);
-}
-
-// ========== 任务 ==========
-void UIManager::RenderMissions(Gdiplus::Graphics& g, ScoreManager& /*score*/) {
-    float cx = Config::CANVAS_WIDTH * 0.5f;
-    Gdiplus::StringFormat fmt;
-    fmt.SetAlignment(Gdiplus::StringAlignmentCenter);
-
-    Gdiplus::SolidBrush titleBrush(Gdiplus::Color(255, 255, 220, 80));
-    g.DrawString(L"每日任务", -1, m_menuFont, Gdiplus::PointF(cx, 30), &fmt, &titleBrush);
-
-    for (int i = 0; i < 5; ++i) {
-        m_missionButtons[i].Render(g, *m_buttonFont);
-
-        wchar_t buf[64];
-        int prog = m_missionProgress[i];
-        int target = GetMissionTarget(i);
-        if (m_missionClaimed[i]) {
-            swprintf(buf, 64, L"已完成");
-        } else {
-            swprintf(buf, 64, L"进度：%d / %d", prog, target);
-        }
-        Gdiplus::Color pc = m_missionClaimed[i]
-            ? Gdiplus::Color(180, 80, 220, 80)
-            : (prog >= target ? Gdiplus::Color(200, 255, 220, 80) : Gdiplus::Color(160, 180, 180, 180));
-        Gdiplus::SolidBrush pBrush(pc);
-        g.DrawString(buf, -1, m_smallFont,
-                     Gdiplus::PointF(cx, 160.0f + i * 55.0f + 24), &fmt, &pBrush);
-    }
 
     m_backButton.Render(g, *m_buttonFont);
 }

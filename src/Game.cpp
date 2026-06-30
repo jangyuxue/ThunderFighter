@@ -83,8 +83,7 @@ void Game::FixedUpdate(double dt) {
     GameState state = m_uiManager.GetState();
 
     if (state == GameState::HUB
-        || state == GameState::LEVEL_SELECT || state == GameState::SHOP
-        || state == GameState::MISSIONS) {
+        || state == GameState::LEVEL_SELECT || state == GameState::SHOP) {
         m_uiManager.HandleInput(m_input, m_player, m_scoreManager);
 
         // HUB/关卡选择 → 开始游戏
