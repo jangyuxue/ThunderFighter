@@ -45,6 +45,14 @@ private:
                     std::vector<std::unique_ptr<Enemy>>& enemies);
     void SpawnMedium(float x, float y, int level,
                      std::vector<std::unique_ptr<Enemy>>& enemies);
+    void SpawnShooter(float x, float y, int level,
+                      std::vector<std::unique_ptr<Enemy>>& enemies);
+    void SpawnTank(float x, float y, int level,
+                   std::vector<std::unique_ptr<Enemy>>& enemies);
+    void SpawnElite(float x, float y, int level,
+                    std::vector<std::unique_ptr<Enemy>>& enemies);
+    void SpawnHeavyMix(float x, float y, int level,
+                       std::vector<std::unique_ptr<Enemy>>& enemies);
     void SpawnBoss(int level,
                    std::vector<std::unique_ptr<Enemy>>& enemies);
     void SpawnMixed(float x, float y, int level,

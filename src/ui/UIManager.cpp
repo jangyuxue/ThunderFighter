@@ -45,7 +45,7 @@ void UIManager::Init() {
     const wchar_t* hubLabels[3] = {
         L"开始游戏", L"关卡选择", L"商  店"
     };
-    float hx = cx - btnW * 0.5f;
+    float hx = cx;
     m_hubButtons.resize(3);
     for (int i = 0; i < 3; ++i) {
         float hy = baseY + i * (btnH + gapY);
@@ -95,6 +95,7 @@ void UIManager::Init() {
         Gdiplus::Color(255, 255, 240, 220));
 
     m_levelUnlocked[0] = true;
+    SetState(GameState::HUB);  // 确保每次初始化都从大厅开始
 }
 
 void UIManager::LoadData(ScoreManager& score) {

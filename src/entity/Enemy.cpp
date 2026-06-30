@@ -5,9 +5,10 @@
 // ============================================================
 // Enemy 基类
 // ============================================================
-void Enemy::Init(float x, float y, int /*level*/) {
+void Enemy::Init(float x, float y, int level) {
     m_x = x;
     m_y = y;
+    m_level = level;
     m_state = State::ACTIVE;
     m_active = true;
     m_deathTimer = 0.0f;
@@ -397,4 +398,229 @@ void EnemyBoss::Render(Gdiplus::Graphics& g) {
     wchar_t buf[32];
     swprintf(buf, 32, L"PHASE %d", m_phase);
     g.DrawString(buf, -1, &font, Gdiplus::PointF(barX, barY + 12), &phaseBrush);
+}
+
+// ============================================================
+// EnemyShooter — 射击型敌机（快速，三向瞄准散射）
+// ============================================================
+void EnemyShooter::Init(float x, float y, int level) {
+    Enemy::Init(x, y, level);
+    m_kind = EnemyKind::SHOOTER;
+    m_hp   = Config::ENEMY_SHOOTER_HP + level;
+    m_maxHP = m_hp;
+    m_scoreValue = Config::SCORE_SHOOTER_ENEMY;
+    m_vy  = Config::ENEMY_SHOOTER_SPEED;
+    m_startX = x;
+    m_swayPhase = static_cast<float>(rand()) / RAND_MAX * 6.28f;
+    m_shootInterval = 1.6f / (0.7f + level * 0.15f);
+    SetSize(28.0f, 28.0f);
+    SetHitbox(20.0f, 20.0f);
+}
+
+void EnemyShooter::Update(float dt) {
+    if (m_state != State::ACTIVE) {
+        Enemy::Update(dt);
+        return;
+    }
+
+    // 边下降边快速横向摇摆
+    m_swayPhase += dt * 5.0f;
+    m_x = m_startX + sin(m_swayPhase) * (40.0f + m_level * 8.0f);
+    m_y += m_vy * dt * 60.0f;
+
+    m_shootTimer += dt;
+
+    if (m_y > Config::CANVAS_HEIGHT + 60.0f) {
+        Deactivate();
+        m_state = State::DEAD;
+    }
+}
+
+bool EnemyShooter::ShouldShoot(float /*dt*/) {
+    if (m_y < 60.0f) return false;
+    if (m_shootTimer < m_shootInterval) return false;
+    m_shootTimer = 0.0f;
+    return true;
+}
+
+void EnemyShooter::Render(Gdiplus::Graphics& g) {
+    if (!m_active && m_state == State::DEAD) return;
+
+    if (m_state == State::DYING) {
+        float alpha = 1.0f - (m_deathTimer / 0.3f);
+        Gdiplus::Color flicker(static_cast<BYTE>(220 * alpha), 255, 200, 50);
+        Gdiplus::SolidBrush fb(flicker);
+        g.FillEllipse(&fb, m_x - 14.0f, m_y - 14.0f, 28.0f, 28.0f);
+        return;
+    }
+
+    // 橙色攻击性机身
+    Gdiplus::SolidBrush body(Gdiplus::Color(240, 140, 60));
+    Gdiplus::PointF bodyPts[3] = {
+        { m_x,       m_y - 12 },
+        { m_x - 10,  m_y + 8  },
+        { m_x + 10,  m_y + 8  }
+    };
+    g.FillPolygon(&body, bodyPts, 3);
+
+    // 绿色机翼
+    Gdiplus::SolidBrush wing(Gdiplus::Color(120, 220, 80));
+    Gdiplus::PointF wl[3] = { { m_x - 5, m_y - 2 }, { m_x - 18, m_y + 6 }, { m_x - 5, m_y + 4 } };
+    Gdiplus::PointF wr[3] = { { m_x + 5, m_y - 2 }, { m_x + 18, m_y + 6 }, { m_x + 5, m_y + 4 } };
+    g.FillPolygon(&wing, wl, 3);
+    g.FillPolygon(&wing, wr, 3);
+}
+
+// ============================================================
+// EnemyTank — 重型坦克敌机（慢速，悬停，八向放射）
+// ============================================================
+void EnemyTank::Init(float x, float y, int level) {
+    Enemy::Init(x, y, level);
+    m_kind = EnemyKind::TANK;
+    m_hp   = Config::ENEMY_TANK_HP + level * 3;
+    m_maxHP = m_hp;
+    m_scoreValue = Config::SCORE_TANK_ENEMY;
+    m_vy  = Config::ENEMY_TANK_SPEED;
+    m_startY = y;
+    m_hoverTimer = 0.0f;
+    m_shootInterval = 3.0f / (0.6f + level * 0.15f);
+    SetSize(40.0f, 36.0f);
+    SetHitbox(32.0f, 30.0f);
+}
+
+void EnemyTank::Update(float dt) {
+    if (m_state != State::ACTIVE) {
+        Enemy::Update(dt);
+        return;
+    }
+
+    // 缓慢下降，到达 y>160 后悬停
+    m_y += m_vy * dt * 60.0f;
+    if (m_y > 160.0f) {
+        m_vy = 0.0f;
+        m_hoverTimer += dt;
+        m_x += sin(m_hoverTimer * 1.2f) * dt * 12.0f;
+    }
+
+    m_shootTimer += dt;
+
+    if (m_y > Config::CANVAS_HEIGHT + 60.0f) {
+        Deactivate();
+        m_state = State::DEAD;
+    }
+}
+
+bool EnemyTank::ShouldShoot(float /*dt*/) {
+    if (m_y < 80.0f) return false;
+    if (m_shootTimer < m_shootInterval) return false;
+    m_shootTimer = 0.0f;
+    return true;
+}
+
+void EnemyTank::Render(Gdiplus::Graphics& g) {
+    if (!m_active && m_state == State::DEAD) return;
+
+    if (m_state == State::DYING) {
+        float alpha = 1.0f - (m_deathTimer / 0.3f);
+        Gdiplus::Color flicker(static_cast<BYTE>(200 * alpha), 150, 150, 150);
+        Gdiplus::SolidBrush fb(flicker);
+        g.FillEllipse(&fb, m_x - 20.0f, m_y - 18.0f, 40.0f, 36.0f);
+        return;
+    }
+
+    // 深色厚重装甲
+    Gdiplus::SolidBrush body(Gdiplus::Color(90, 90, 110));
+    Gdiplus::PointF pts[6] = {
+        { m_x,       m_y - 18 },
+        { m_x + 20,  m_y - 6  },
+        { m_x + 20,  m_y + 10 },
+        { m_x,       m_y + 18 },
+        { m_x - 20,  m_y + 10 },
+        { m_x - 20,  m_y - 6  }
+    };
+    g.FillPolygon(&body, pts, 6);
+
+    // 红色核心
+    float pulse = 1.0f + 0.1f * sin(m_hoverTimer * 3.0f);
+    Gdiplus::SolidBrush core(Gdiplus::Color(255, 80, 40));
+    g.FillEllipse(&core, m_x - 8 * pulse, m_y - 6 * pulse,
+                 16 * pulse, 12 * pulse);
+
+    // 血条（始终显示，因为血量高）
+    float barW = 30.0f, barH = 3.0f;
+    float barX = m_x - barW * 0.5f, barY = m_y - 24.0f;
+    Gdiplus::SolidBrush bgBar(Gdiplus::Color(60, 60, 60));
+    g.FillRectangle(&bgBar, barX, barY, barW, barH);
+    float ratio = static_cast<float>(m_hp) / m_maxHP;
+    Gdiplus::SolidBrush hpBar(Gdiplus::Color(220, 60, 40));
+    g.FillRectangle(&hpBar, barX, barY, barW * ratio, barH);
+}
+
+// ============================================================
+// EnemyElite — 精英敌机（横向大振幅摆动，波浪墙弹幕）
+// ============================================================
+void EnemyElite::Init(float x, float y, int level) {
+    Enemy::Init(x, y, level);
+    m_kind = EnemyKind::ELITE;
+    m_hp   = Config::ENEMY_ELITE_HP + level * 2;
+    m_maxHP = m_hp;
+    m_scoreValue = Config::SCORE_ELITE_ENEMY;
+    m_vy  = Config::ENEMY_ELITE_SPEED;
+    m_startX = x;
+    m_swayPhase = static_cast<float>(rand()) / RAND_MAX * 6.28f;
+    m_shootInterval = 2.2f / (0.7f + level * 0.15f);
+    SetSize(34.0f, 34.0f);
+    SetHitbox(26.0f, 26.0f);
+}
+
+void EnemyElite::Update(float dt) {
+    if (m_state != State::ACTIVE) {
+        Enemy::Update(dt);
+        return;
+    }
+
+    // 大振幅横向正弦波下降
+    m_swayPhase += dt * 2.5f;
+    m_x = m_startX + sin(m_swayPhase) * (70.0f + m_level * 10.0f);
+    m_y += m_vy * dt * 60.0f;
+
+    m_shootTimer += dt;
+
+    if (m_y > Config::CANVAS_HEIGHT + 60.0f) {
+        Deactivate();
+        m_state = State::DEAD;
+    }
+}
+
+bool EnemyElite::ShouldShoot(float /*dt*/) {
+    if (m_y < 70.0f) return false;
+    if (m_shootTimer < m_shootInterval) return false;
+    m_shootTimer = 0.0f;
+    return true;
+}
+
+void EnemyElite::Render(Gdiplus::Graphics& g) {
+    if (!m_active && m_state == State::DEAD) return;
+
+    if (m_state == State::DYING) {
+        float alpha = 1.0f - (m_deathTimer / 0.3f);
+        Gdiplus::Color flicker(static_cast<BYTE>(220 * alpha), 200, 80, 220);
+        Gdiplus::SolidBrush fb(flicker);
+        g.FillEllipse(&fb, m_x - 17.0f, m_y - 17.0f, 34.0f, 34.0f);
+        return;
+    }
+
+    // 紫色精英机身
+    Gdiplus::SolidBrush body(Gdiplus::Color(180, 80, 220));
+    Gdiplus::PointF pts[4] = {
+        { m_x,       m_y - 15 },
+        { m_x + 14,  m_y + 2  },
+        { m_x,       m_y + 15 },
+        { m_x - 14,  m_y + 2  }
+    };
+    g.FillPolygon(&body, pts, 4);
+
+    // 亮紫核心
+    Gdiplus::SolidBrush core(Gdiplus::Color(255, 140, 255));
+    g.FillEllipse(&core, m_x - 7.0f, m_y - 7.0f, 14.0f, 14.0f);
 }

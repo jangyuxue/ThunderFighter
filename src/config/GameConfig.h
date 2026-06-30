@@ -45,10 +45,24 @@ namespace Config {
     constexpr int   MAX_ENEMIES        = 60;
     constexpr float ENEMY_SMALL_SPEED  = 3.5f;
     constexpr float ENEMY_MEDIUM_SPEED = 2.0f;
-    constexpr float BOSS_SPEED         = 1.0f;
-    constexpr int   ENEMY_SMALL_HP     = 2;
-    constexpr int   ENEMY_MEDIUM_HP    = 6;
-    constexpr int   BOSS_BASE_HP       = 80;
+    constexpr float ENEMY_SHOOTER_SPEED = 4.2f;
+    constexpr float ENEMY_TANK_SPEED    = 1.3f;
+    constexpr float ENEMY_ELITE_SPEED   = 2.8f;
+    constexpr float BOSS_SPEED          = 1.0f;
+    constexpr int   ENEMY_SMALL_HP      = 2;
+    constexpr int   ENEMY_MEDIUM_HP     = 6;
+    constexpr int   ENEMY_SHOOTER_HP    = 3;
+    constexpr int   ENEMY_TANK_HP       = 12;
+    constexpr int   ENEMY_ELITE_HP      = 7;
+    constexpr int   BOSS_BASE_HP        = 80;
+
+    // ---- 分数 ----
+    constexpr int SCORE_SMALL_ENEMY   = 100;
+    constexpr int SCORE_MEDIUM_ENEMY  = 300;
+    constexpr int SCORE_SHOOTER_ENEMY = 200;
+    constexpr int SCORE_TANK_ENEMY    = 500;
+    constexpr int SCORE_ELITE_ENEMY   = 400;
+    constexpr int SCORE_BOSS          = 5000;
 
     // ---- 道具 ----
     constexpr int   MAX_POWERUPS       = 10;
@@ -66,11 +80,7 @@ namespace Config {
     // ---- 星空 ----
     constexpr int MAX_STARS = 120;
 
-    // ---- 分数 ----
-    constexpr int SCORE_SMALL_ENEMY  = 100;
-    constexpr int SCORE_MEDIUM_ENEMY = 300;
-    constexpr int SCORE_BOSS         = 5000;
-    constexpr int SCORE_POWERUP      = 50;
+    constexpr int SCORE_POWERUP = 50;
 
     // ---- 关卡 ----
     constexpr int MAX_LEVELS = 5;

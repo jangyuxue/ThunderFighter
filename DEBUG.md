@@ -139,3 +139,30 @@
 - **触发**: 用户反馈删除任务后 2+1 布局不协调
 - **变更**: HUB 主界面 3 个按钮从 "2+1" 不对称布局改为垂直居中一列：按钮宽度 180、高度 54、间距 20、起始 Y=430，整体在画面中下区域对称分布
 - **验证**: `mingw32-make clean && mingw32-make` 构建成功；启动冒烟测试进程存活无崩溃
+
+## #18: HUB 按钮真正居中 + 启动时防止误切关卡选择
+- **触发**: 用户截图显示 3 个垂直按钮仍偏左；用户报告点击 exe 启动后偶尔先进入关卡选择界面
+- **根因(居中)**: `Button` 类把 `m_x`/`m_y` 当作按钮**中心点**处理（`Render` 和 `IsHovered` 都减去半宽高），但 HUB 初始化代码仍按"左上角"思路写成了 `hx = cx - btnW * 0.5f`，导致按钮整体左移 90 像素
+- **根因(启动切关)**: `Game::Run()` 进入主循环前没有预热输入状态。`InputManager::Update()` 第一帧时 `m_prevMouseDown` 为 false；若用户点击 exe 后鼠标仍按住，则 `m_mousePressed` 被误判为 true，且鼠标位置若在"关卡选择"按钮上就会立即切到 `LEVEL_SELECT`
+- **修复**:
+  - `UIManager::Init()` 中 `hx = cx - btnW * 0.5f` → `hx = cx`
+  - `Game::Run()` 开头 `m_timer.Reset()` 后加 `m_input.Update()` 预热输入
+  - `UIManager::Init()` 末尾显式 `SetState(GameState::HUB)`，确保初始化后一定在大厅
+- **验证**: 构建成功；启动冒烟测试进程存活；按钮水平居中；按住鼠标启动不再误切关卡
+
+## #19: 扩展敌人种类与攻击模式
+- **触发**: 用户反馈敌人种类太少、攻击手段太少
+- **变更**:
+  - 新增 3 种敌机（均在 `src/entity/Enemy.h` / `Enemy.cpp`）：
+    - `EnemyShooter`（射击型）：快速横向摇摆，3 向瞄准散射，第 2 关起出现
+    - `EnemyTank`（重型坦克）：慢速悬停，8 向放射弹幕，第 3 关起出现
+    - `EnemyElite`（精英机）：大振幅横向摆动，5 发波浪墙，第 4 关起出现
+  - 新增 `BulletPatterns` 模块（`src/system/BulletPatterns.h` / `.cpp`）：提供 `AimedSpread`、`RadialFan`、`Spiral`、`WaveWall`、`CrossBurst` 5 种可复用弹幕模式
+  - 重构 `Game::UpdateEnemies`：原 MEDIUM/BOSS 硬编码弹幕改为调用 `BulletPattern` helper；新敌机直接复用这些模式
+  - 扩展 `EnemyKind`、`EnemySpawnType`，新增 `SHOOTER/TANK/ELITE/HEAVY_MIX` 波次类型
+  - 更新 `LEVELS` 关卡数据，逐关引入新敌人，第 5 关为全类型高强度混合
+  - `LevelManager` 新增 `SpawnShooter/SpawnTank/SpawnElite/SpawnHeavyMix`，`SpawnMixed` 也会随机生成 Shooter
+  - `GameConfig.h` 新增敌人速度/HP/分值常量；`Enemy` 基类增加 `m_level` 成员并在 `Init` 中保存
+  - `Makefile` 加入 `src/system/BulletPatterns.cpp`
+- **验证**: `mingw32-make clean && mingw32-make` 构建成功；启动冒烟测试进程存活无崩溃
+- **教训**: GDI+ 的 `FillEllipse(REAL,REAL,REAL,REAL)` 与 `(INT,INT,INT,INT)` 重载容易因整数字面量产生歧义，新增绘制代码时应统一加 `.0f`

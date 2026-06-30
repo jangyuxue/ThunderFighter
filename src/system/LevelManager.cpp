@@ -115,6 +115,18 @@ void LevelManager::Update(float dt,
         case EnemySpawnType::MIX:
             SpawnMixed(spawnX, spawnY, m_currentLevel, enemies);
             break;
+        case EnemySpawnType::SHOOTER:
+            SpawnShooter(spawnX, spawnY, m_currentLevel, enemies);
+            break;
+        case EnemySpawnType::TANK:
+            SpawnTank(spawnX, spawnY, m_currentLevel, enemies);
+            break;
+        case EnemySpawnType::ELITE:
+            SpawnElite(spawnX, spawnY, m_currentLevel, enemies);
+            break;
+        case EnemySpawnType::HEAVY_MIX:
+            SpawnHeavyMix(spawnX, spawnY, m_currentLevel, enemies);
+            break;
         }
 
         ++m_spawnedInWave;
@@ -153,11 +165,43 @@ void LevelManager::SpawnBoss(int level,
 
 void LevelManager::SpawnMixed(float x, float y, int level,
                               std::vector<std::unique_ptr<Enemy>>& enemies) {
-    if (rand() % 2 == 0) {
+    int r = rand() % 3;
+    if (r == 0) {
         SpawnSmall(x, y, level, enemies);
-    } else {
+    } else if (r == 1) {
         SpawnMedium(x, y, level, enemies);
+    } else {
+        SpawnShooter(x, y, level, enemies);
     }
+}
+
+void LevelManager::SpawnShooter(float x, float y, int level,
+                                std::vector<std::unique_ptr<Enemy>>& enemies) {
+    auto e = std::make_unique<EnemyShooter>();
+    e->Init(x, y, level);
+    enemies.push_back(std::move(e));
+}
+
+void LevelManager::SpawnTank(float x, float y, int level,
+                             std::vector<std::unique_ptr<Enemy>>& enemies) {
+    auto e = std::make_unique<EnemyTank>();
+    e->Init(x, y, level);
+    enemies.push_back(std::move(e));
+}
+
+void LevelManager::SpawnElite(float x, float y, int level,
+                              std::vector<std::unique_ptr<Enemy>>& enemies) {
+    auto e = std::make_unique<EnemyElite>();
+    e->Init(x, y, level);
+    enemies.push_back(std::move(e));
+}
+
+void LevelManager::SpawnHeavyMix(float x, float y, int level,
+                                 std::vector<std::unique_ptr<Enemy>>& enemies) {
+    int r = rand() % 3;
+    if (r == 0) SpawnMedium(x, y, level, enemies);
+    else if (r == 1) SpawnTank(x, y, level, enemies);
+    else SpawnElite(x, y, level, enemies);
 }
 
 void LevelManager::OnBossDefeated() {

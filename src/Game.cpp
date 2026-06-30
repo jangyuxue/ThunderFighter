@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "system/BulletPatterns.h"
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
@@ -40,6 +41,7 @@ bool Game::Initialize(HWND hWnd) {
 // ============================================================
 void Game::Run() {
     m_timer.Reset();
+    m_input.Update();  // 预热输入状态，避免启动时第一帧把按住鼠标误判为点击
 
     double accumulator = 0.0;
     const double dt = Config::FIXED_TIMESTEP;
@@ -270,79 +272,78 @@ void Game::UpdatePlayer(float dt) {
 // 敌人更新
 // ============================================================
 void Game::UpdateEnemies(float dt) {
+    static float bossSpiralAngle = 0.0f;
+
     for (auto& enemy : m_enemies) {
         if (!enemy->IsActive()) continue;
 
         enemy->Update(dt);
 
-        // 中型和 Boss 敌机射击
-        if (enemy->ShouldShoot(dt)) {
-            if (enemy->GetKind() == EnemyKind::BOSS) {
-                // Boss 弹幕
-                EnemyBoss* boss = static_cast<EnemyBoss*>(enemy.get());
-                int pattern = boss->GetPhase() > 1 ? rand() % 3 : 0;
-                float sx = boss->GetShootX();
-                float sy = boss->GetShootY();
+        if (!enemy->ShouldShoot(dt)) continue;
 
-                switch (pattern) {
-                case 0: {
-                    // 瞄准射击
-                    float angle = atan2(m_player.GetX() - sx, -100);
-                    for (int i = -1; i <= 1; ++i) {
-                        Bullet* b = m_enemyBullets.Acquire();
-                        if (b) {
-                            b->Init(sx + i * 10.0f, sy,
-                                    sin(angle + i * 0.1f) * Config::ENEMY_BULLET_SPEED * 0.5f,
-                                    Config::ENEMY_BULLET_SPEED,
-                                    1, BulletOwner::ENEMY);
-                        }
-                    }
-                    break;
-                }
-                case 1: {
-                    // 扇形弹幕
-                    for (int i = 0; i < 8; ++i) {
-                        float a = i * 3.14159f * 2.0f / 8.0f;
-                        Bullet* b = m_enemyBullets.Acquire();
-                        if (b) {
-                            b->Init(sx, sy,
-                                    sin(a) * Config::ENEMY_BULLET_SPEED * 0.7f,
-                                    cos(a) * Config::ENEMY_BULLET_SPEED * 0.7f,
-                                    1, BulletOwner::ENEMY);
-                        }
-                    }
-                    break;
-                }
-                case 2: {
-                    // 螺旋弹幕
-                    static float spiralAngle = 0.0f;
-                    spiralAngle += 0.3f;
-                    for (int i = 0; i < 3; ++i) {
-                        float a = spiralAngle + i * 3.14159f * 2.0f / 3.0f;
-                        Bullet* b = m_enemyBullets.Acquire();
-                        if (b) {
-                            b->Init(sx, sy,
-                                    sin(a) * Config::ENEMY_BULLET_SPEED * 0.5f,
-                                    Config::ENEMY_BULLET_SPEED * 0.6f,
-                                    1, BulletOwner::ENEMY);
-                        }
-                    }
-                    break;
-                }
-                }
-            } else if (enemy->GetKind() == EnemyKind::MEDIUM) {
-                // 中型敌机：瞄准玩家射击
-                Bullet* b = m_enemyBullets.Acquire();
-                if (b) {
-                    float dx = m_player.GetX() - enemy->GetShootX();
-                    float dy2 = 100.0f;  // 向下
-                    float len = sqrt(dx * dx + dy2 * dy2);
-                    float vx = dx / len * Config::ENEMY_BULLET_SPEED;
-                    float vy = dy2 / len * Config::ENEMY_BULLET_SPEED;
-                    b->Init(enemy->GetShootX(), enemy->GetShootY(),
-                            vx, vy, 1, BulletOwner::ENEMY);
-                }
+        float sx = enemy->GetShootX();
+        float sy = enemy->GetShootY();
+        float px = m_player.GetX();
+        float py = m_player.GetY();
+
+        switch (enemy->GetKind()) {
+        case EnemyKind::MEDIUM:
+            // 中型敌机：单发瞄准玩家
+            BulletPattern::AimedSpread(
+                m_enemyBullets, sx, sy, px, py + 100.0f,
+                1, 0.0f, Config::ENEMY_BULLET_SPEED);
+            break;
+
+        case EnemyKind::SHOOTER:
+            // 射击型敌机：3 向瞄准散射
+            BulletPattern::AimedSpread(
+                m_enemyBullets, sx, sy, px, py + 80.0f,
+                3, 0.12f, Config::ENEMY_BULLET_SPEED * 0.85f);
+            break;
+
+        case EnemyKind::TANK:
+            // 重型坦克：8 向放射弹幕
+            BulletPattern::RadialFan(
+                m_enemyBullets, sx, sy, 8,
+                Config::ENEMY_BULLET_SPEED * 0.65f);
+            break;
+
+        case EnemyKind::ELITE:
+            // 精英敌机：5 发波浪墙
+            BulletPattern::WaveWall(
+                m_enemyBullets, sx, sy, 5,
+                Config::ENEMY_BULLET_SPEED * 0.75f);
+            break;
+
+        case EnemyKind::BOSS: {
+            EnemyBoss* boss = static_cast<EnemyBoss*>(enemy.get());
+            int pattern = boss->GetPhase() > 1 ? rand() % 3 : 0;
+            switch (pattern) {
+            case 0:
+                // 阶段 1/2/3：瞄准三向散射
+                BulletPattern::AimedSpread(
+                    m_enemyBullets, sx, sy, px, sy + 100.0f,
+                    3, 0.10f, Config::ENEMY_BULLET_SPEED * 0.55f);
+                break;
+            case 1:
+                // 放射弹幕
+                BulletPattern::RadialFan(
+                    m_enemyBullets, sx, sy, 8,
+                    Config::ENEMY_BULLET_SPEED * 0.7f);
+                break;
+            case 2:
+                // 螺旋弹幕
+                BulletPattern::Spiral(
+                    m_enemyBullets, sx, sy, 3,
+                    Config::ENEMY_BULLET_SPEED * 0.6f,
+                    bossSpiralAngle, 0.3f);
+                break;
             }
+            break;
+        }
+
+        default:
+            break;
         }
     }
 }

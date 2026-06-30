@@ -10,7 +10,10 @@
 enum class EnemyKind {
     SMALL,
     MEDIUM,
-    BOSS
+    BOSS,
+    SHOOTER,   // 射击型：移动快，三向瞄准散射
+    TANK,      // 重型坦克：慢速，悬停，八向放射
+    ELITE      // 精英机：横向摆动，波浪墙弹幕
 };
 
 // 敌人基类
@@ -44,6 +47,7 @@ protected:
     enum class State { ACTIVE, DYING, DEAD };
     State     m_state      = State::ACTIVE;
     EnemyKind m_kind       = EnemyKind::SMALL;
+    int       m_level      = 1;
     int       m_hp         = 1;
     int       m_maxHP      = 1;
     int       m_scoreValue = 100;
@@ -103,4 +107,43 @@ private:
     float m_entranceY   = 80.0f;
     float m_patternTimer = 0.0f;
     int   m_bulletPattern = 0;
+};
+
+// ---- 射击型敌机（移动快，三向瞄准散射） ----
+class EnemyShooter : public Enemy {
+public:
+    void Init(float x, float y, int level) override;
+    void Update(float dt) override;
+    void Render(Gdiplus::Graphics& g) override;
+    bool ShouldShoot(float dt) override;
+
+private:
+    float m_startX = 0.0f;
+    float m_swayPhase = 0.0f;
+};
+
+// ---- 重型坦克敌机（慢速，悬停，八向放射） ----
+class EnemyTank : public Enemy {
+public:
+    void Init(float x, float y, int level) override;
+    void Update(float dt) override;
+    void Render(Gdiplus::Graphics& g) override;
+    bool ShouldShoot(float dt) override;
+
+private:
+    float m_startY = 0.0f;
+    float m_hoverTimer = 0.0f;
+};
+
+// ---- 精英敌机（横向大振幅摆动，波浪墙弹幕） ----
+class EnemyElite : public Enemy {
+public:
+    void Init(float x, float y, int level) override;
+    void Update(float dt) override;
+    void Render(Gdiplus::Graphics& g) override;
+    bool ShouldShoot(float dt) override;
+
+private:
+    float m_startX = 0.0f;
+    float m_swayPhase = 0.0f;
 };

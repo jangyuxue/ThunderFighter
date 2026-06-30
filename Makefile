@@ -32,6 +32,7 @@ SOURCES   := src/main.cpp \
              src/system/PowerUpSystem.cpp \
              src/system/ParticleSystem.cpp \
              src/system/ScoreManager.cpp \
+             src/system/BulletPatterns.cpp \
              src/ui/Button.cpp \
              src/ui/UIManager.cpp
 
