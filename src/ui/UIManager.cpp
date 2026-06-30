@@ -324,7 +324,7 @@ void UIManager::RenderHub(Gdiplus::Graphics& g, ScoreManager& score) {
     Gdiplus::Font nameFont(m_fontName.c_str(), 24, Gdiplus::FontStyleBold);
     Gdiplus::SolidBrush nameBrush(typeColors[m_selectedAircraft]);
     wchar_t buf[64];
-    swprintf(buf, 64, L"%s  %s", names[m_selectedAircraft], types[m_selectedAircraft]);
+    swprintf(buf, 64, L"%ls  %ls", names[m_selectedAircraft], types[m_selectedAircraft]);
     g.DrawString(buf, -1, &nameFont, Gdiplus::PointF(cx, 185), &fmt, &nameBrush);
 
     // 描述
@@ -384,7 +384,7 @@ void UIManager::RenderLevelSelect(Gdiplus::Graphics& g, ScoreManager& /*score*/)
 
         // 关卡信息
         wchar_t buf[128];
-        swprintf(buf, 128, L"第%d关 · %s   %s", i + 1, levelNames[i], diffs[i]);
+        swprintf(buf, 128, L"第%d关 · %ls   %ls", i + 1, levelNames[i], diffs[i]);
         Gdiplus::SolidBrush txtBrush(m_levelUnlocked[i]
             ? Gdiplus::Color(220, 220, 220, 220) : Gdiplus::Color(80, 80, 80, 80));
         g.DrawString(buf, -1, m_buttonFont, Gdiplus::PointF(cx, y + 2), &fmt, &txtBrush);
@@ -428,7 +428,7 @@ void UIManager::RenderShop(Gdiplus::Graphics& g, ScoreManager& score) {
     int bmb   = (m_shopOwned[3] ? 2 : 0) + (m_shopOwned[6] ? 1 : 0); // 起始炸弹
     bool spd  = m_shopOwned[4];                         // 永久加速
     swprintf(buf, 128,
-        L"战机：%s  生命+%d(上限+%d) 武器+%d 护盾+%d 炸弹+%d 加速%s",
+        L"战机：%ls  生命+%d(上限+%d) 武器+%d 护盾+%d 炸弹+%d 加速%ls",
         names[m_selectedAircraft], lifeB, maxB, wpn, shd, bmb,
         spd ? L"是" : L"否");
     g.DrawString(buf, -1, m_smallFont, Gdiplus::PointF(cx, 90), &fmt, &acBrush);
@@ -498,7 +498,7 @@ void UIManager::RenderHUD(Gdiplus::Graphics& g, Player& player,
     const wchar_t* levelNames[5] = { L"地球轨道", L"小行星带", L"敌方舰队", L"深空要塞", L"母舰决战" };
     int lv = level.GetCurrentLevel() - 1;
     if (lv >= 0 && lv < 5) {
-        swprintf(buf, 128, L"第%d关 · %s", lv + 1, levelNames[lv]);
+        swprintf(buf, 128, L"第%d关 · %ls", lv + 1, levelNames[lv]);
     } else {
         swprintf(buf, 128, L"第%d关", lv + 1);
     }
