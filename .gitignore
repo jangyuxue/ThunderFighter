@@ -1,5 +1,3 @@
-# .gitignore for Thunder Fighter
-
 # 构建产物
 obj/
 *.exe
@@ -11,3 +9,13 @@ thunder.sav
 
 # 截图
 screenshot.png
+
+# 本地调试/开发文档（不上传到 GitHub）
+AGENT.md
+DEBUG.md
+PROCESSING.md
+作业要求.txt
+
+# 临时测试文件
+_test_*.cpp
+_test_*.exe
